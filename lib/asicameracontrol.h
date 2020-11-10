@@ -62,6 +62,8 @@ public:
     long get(bool *isAutoControl = nullptr);
     bool set(long value, bool autoControl = false);
 
+    bool setAutoControl();
+
 public:
     AsiCameraControl &operator=(long value)
     {

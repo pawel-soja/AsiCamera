@@ -7,6 +7,7 @@
 #include <vector>
 #include <chrono>
 #include <numeric>
+#include <cstring>
 
 using std::to_string;
 std::string to_string(const std::string &str)
@@ -74,8 +75,16 @@ int main(int argc, char *argv[])
             if (!control.isValid())
                 printf("Control not found: %s\n", argv[i]);
 
-            if (control.set(atoi(argv[i+1])) == false)
-                printf("Cannot set '%s' to %s\n", argv[i], argv[i+1]);
+            if (!strcmp(argv[i+1], "auto"))
+            {
+                if (control.setAutoControl() == false)
+                    printf("Cannot set '%s' to %s\n", argv[i], argv[i+1]);
+            }
+            else
+            {
+                if (control.set(atoi(argv[i+1])) == false)
+                    printf("Cannot set '%s' to %s\n", argv[i], argv[i+1]);
+            }
 
             printf("Set '%s' to %s\n", argv[i], argv[i+1]);
         }   

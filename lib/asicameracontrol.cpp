@@ -158,6 +158,11 @@ long AsiCameraControl::get(bool *isAutoControl)
     return value;
 }
 
+bool AsiCameraControl::setAutoControl()
+{
+    return set(min(), true);
+}
+
 bool AsiCameraControl::set(long value, bool autoControl)
 {
     AsiCameraControlPrivate *d = d_func();
