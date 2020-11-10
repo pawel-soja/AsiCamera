@@ -109,15 +109,16 @@ int main(int argc, char *argv[])
         
         // warming up
         long frames = 0;
+        long failFrames = 0;
         std::chrono::duration<double> diff;
         std::chrono::high_resolution_clock::time_point start, end;
         for(int i=0; i<10; ++i)
         {
             start = std::chrono::high_resolution_clock::now();
-            camera.getVideoData(frame.data(), frame.size());
+            bool ok = camera.getVideoData(frame.data(), frame.size());
             end = std::chrono::high_resolution_clock::now();
             diff = end - start;
-            printf("Exposure duration[ %2d ]: %.1f ms\n", i+1, diff.count() * 1000);
+            printf("Exposure duration[ %2d ]: %.1f ms %s\n", i+1, diff.count() * 1000, ok ? "ok" : "fail");
         }
 
         printf("\nFrames Per Second Test\n");
@@ -125,7 +126,8 @@ int main(int argc, char *argv[])
         for(int i=0; i<10000; ++i)
         {
             ++frames;
-            camera.getVideoData(frame.data(), frame.size());
+            if (camera.getVideoData(frame.data(), frame.size()) == false)
+                ++failFrames;
             end = std::chrono::high_resolution_clock::now();
             diff = end - start;
             if (diff.count() > 1)
@@ -135,7 +137,7 @@ int main(int argc, char *argv[])
         camera.stopVideoCapture();
         camera.close();
 
-        printf("FPS: %.1f\n", double(frames) / diff.count());
+        printf("Fail %d/%d FPS %.1f\n", failFrames, frames, double(frames) / diff.count());
     }
 
     return 0;
