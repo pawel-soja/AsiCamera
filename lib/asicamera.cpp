@@ -174,7 +174,7 @@ bool AsiCamera::startVideoCapture()
     AsiCameraControl exposure = control("Exposure");
 
 
-    d->exposureTimeout = exposure.get() * 2 + 500;
+    d->exposure = exposure.get();
 
     if (exposure.status() != AsiCameraControl::Ok)
     {
@@ -232,7 +232,7 @@ bool AsiCamera::getVideoData(void *data, size_t size)
         d->cameraId,
         static_cast<unsigned char*>(data),
         size,
-        d->exposureTimeout
+        d->exposure * 2 + 50
     );
 
     return d->errorCode == ASI_SUCCESS;

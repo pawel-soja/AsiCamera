@@ -34,7 +34,7 @@ public:
 
     bool isOpen = false;
     bool isVideoCapture = false;
-    long exposureTimeout = 0;
+    long exposure = 0;
 
     int  errorCode = ASI_SUCCESS;
 };
