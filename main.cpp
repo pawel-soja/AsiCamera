@@ -26,7 +26,7 @@ std::string joinAsString(const T &arg, const std::string &separator = ", ")
     );
 }
 
-int main()
+int main(int argc, char *argv[])
 {
     auto cameraInfoList = AsiCameraInfo::availableCameras();
     for(auto &cameraInfo: cameraInfoList)
@@ -57,16 +57,28 @@ int main()
         AsiCamera camera;
         camera.setCamera(cameraInfo);
 
-        printf("Openning camera...\n");
         if (!camera.open())
         {
             printf("Cannot open camera: %d\n", camera.errorCode());
         }
 
+/*
         printf("Set exposure to minimum...\n");
         auto exposure = camera["Exposure"];
         if (!exposure.set(exposure.min()))
             printf("Cannot set exposure: %s\n", exposure.statusString().data());
+*/
+        for(int i=1; i<(argc-1); i += 2)
+        {
+            auto control = camera[std::string(argv[i])];
+            if (!control.isValid())
+                printf("Control not found: %s\n", argv[i]);
+
+            if (control.set(atoi(argv[i+1])) == false)
+                printf("Cannot set '%s' to %s\n", argv[i], argv[i+1]);
+
+            printf("Set '%s' to %s\n", argv[i], argv[i+1]);
+        }   
 
         printf("\n");
         printf("|------------------------------------------------------------------------------------------------------------------------------|\n");
@@ -93,7 +105,7 @@ int main()
 
         camera.startVideoCapture();
 
-        printf("\nSpeed Performance Test...\n");
+        printf("\nFrame Duration Test\n");
         
         // warming up
         long frames = 0;
@@ -105,25 +117,25 @@ int main()
             camera.getVideoData(frame.data(), frame.size());
             end = std::chrono::high_resolution_clock::now();
             diff = end - start;
-            printf("Expose duration[ %2d ]: %.1f ms\n", i+1, diff.count() * 1000);
+            printf("Exposure duration[ %2d ]: %.1f ms\n", i+1, diff.count() * 1000);
         }
 
-        printf("\nLong 5s test...\n");
+        printf("\nFrames Per Second Test\n");
         start = std::chrono::high_resolution_clock::now();
-        for(int i=0; i<1000; ++i)
+        for(int i=0; i<10000; ++i)
         {
             ++frames;
             camera.getVideoData(frame.data(), frame.size());
             end = std::chrono::high_resolution_clock::now();
             diff = end - start;
-            if (diff.count() > 5)
+            if (diff.count() > 1)
                 break;
         }
 
         camera.stopVideoCapture();
         camera.close();
 
-        printf("FPS: %f\n", double(frames) / diff.count());
+        printf("FPS: %.1f\n", double(frames) / diff.count());
     }
 
     return 0;
