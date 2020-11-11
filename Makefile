@@ -1,6 +1,4 @@
-CC=g++
-
-OUT=asitest
+OUT = asitest
 
 CXXSRCS = \
 	./main.cpp \
@@ -8,18 +6,37 @@ CXXSRCS = \
 	./lib/asicamerainfo.cpp \
 	./lib/asicameracontrol.cpp
 
-LIBS=./libasi/$(shell uname -m)/libASICamera2.bin
-LD_LIBRARY_PATH=./libasi/$(shell uname -m)
+INCPATH = \
+	./lib \
+	./libasi/include
+
+LIBS = \
+	-lpthread \
+	-lusb-1.0
+
+CC = g++
+ARCH=$(shell uname -m)
+
+ifeq ($(ARCH), x86_64)
+LIBS += ./libasi/lib/x64/libASICamera2.a
+
+else ifeq ($(ARCH), armv7l)
+LIBS += ./libasi/lib/armv7/libASICamera2.a
+
+else
+$(error Unknown architecture, please update the Makefile)
+
+endif
 
 .PHONY: all
 all: $(OUT)
 
 $(OUT): $(CXXSRCS)
-	$(CC) -o $@ $^ -I./ -I./lib/ -I./libasi/ $(LIBS)
+	$(CC) -o $@ $^ $(addprefix -I,$(INCPATH)) $(LIBS) -lpthread -lusb-1.0
 
 .PHONY: run
 run:
-	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) ./$(OUT)
+	./$(OUT)
 
 .PHONY: test
 test: purge all run
@@ -27,7 +44,3 @@ test: purge all run
 .PHONY: purge
 purge:
 	@rm -f $(OUT)
-
-#!/bin/bash
-#g++ -o main main.cpp asicameracontrol.cpp asicamerainfo.cpp asicamera.cpp -I ./ libASICamera2.bin  && LD_LIBRARY_PATH=./  ./main
-
