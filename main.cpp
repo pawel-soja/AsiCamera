@@ -4,6 +4,7 @@
 #include "asicamera.h"
 #include "asicamerainfo.h"
 
+#include <limits>
 #include <vector>
 #include <chrono>
 #include <numeric>
@@ -63,12 +64,6 @@ int main(int argc, char *argv[])
             printf("Cannot open camera: %d\n", camera.errorCode());
         }
 
-/*
-        printf("Set exposure to minimum...\n");
-        auto exposure = camera["Exposure"];
-        if (!exposure.set(exposure.min()))
-            printf("Cannot set exposure: %s\n", exposure.statusString().data());
-*/
         for(int i=1; i<(argc-1); i += 2)
         {
             auto control = camera[std::string(argv[i])];
@@ -78,18 +73,19 @@ int main(int argc, char *argv[])
             if (!strcmp(argv[i+1], "auto"))
             {
                 if (control.setAutoControl() == false)
-                    printf("Cannot set '%s' to %s\n", argv[i], argv[i+1]);
+                    printf("Cannot set '%s' to auto mode\n", argv[i]);
             }
             else
             {
                 if (control.set(atoi(argv[i+1])) == false)
-                    printf("Cannot set '%s' to %s\n", argv[i], argv[i+1]);
+                    printf("Cannot set '%s' to '%s'\n", argv[i], argv[i+1]);
             }
 
             printf("Set '%s' to %s\n", argv[i], argv[i+1]);
         }   
 
         printf("\n");
+        printf("Camera Options\n");
         printf("|------------------------------------------------------------------------------------------------------------------------------|\n");
         printf("|        Option  Name      |  Value |   Min  |     Max    | Default  | Auto |                Description                       |\n");
         printf("|------------------------------------------------------------------------------------------------------------------------------|\n");
@@ -110,43 +106,74 @@ int main(int argc, char *argv[])
         }
         printf("|------------------------------------------------------------------------------------------------------------------------------|\n");
 
-        std::vector<uint8_t> frame(cameraInfo.maxWidth() * cameraInfo.maxHeight() * 2);
+        
+        printf("\nFind best bandwidth\n");
+        printf("|---------------------------------------------------------------------------------------------------------------------------------|\n");
+        printf("| BW [%] |                                            Frame duration [ms]                                                         |\n");
+        printf("|---------------------------------------------------------------------------------------------------------------------------------|\n");
 
+        std::vector<uint8_t> frame(cameraInfo.maxWidth() * cameraInfo.maxHeight() * 2 * 2);
+
+        void *buffer = frame.data();
+        size_t bufferSize = frame.size();
+        
         camera.startVideoCapture();
 
-        printf("\nFrame Duration Test\n");
-        
-        // warming up
         long frames = 0;
         long failFrames = 0;
+        
         std::chrono::duration<double> diff;
         std::chrono::high_resolution_clock::time_point start, end;
-        for(int i=0; i<10; ++i)
+
+        long bestBandWidth = 40;
+        double bestTime = std::numeric_limits<double>::max();
+
+        for(int bandWidth = 40; bandWidth <= 100; bandWidth += 5)
         {
-            start = std::chrono::high_resolution_clock::now();
-            bool ok = camera.getVideoData(frame.data(), frame.size());
-            end = std::chrono::high_resolution_clock::now();
-            diff = end - start;
-            printf("Exposure duration[ %2d ]: %.1f ms %s\n", i+1, diff.count() * 1000, ok ? "ok" : "fail");
+            printf("|  %3d%%  |", bandWidth);
+            camera["BandWidth"] = bandWidth;
+            double totalTime = 0;
+            for(int i=0; i<20; ++i)
+            {
+                start = std::chrono::high_resolution_clock::now();
+                bool ok = camera.getVideoData(buffer, bufferSize);
+                end = std::chrono::high_resolution_clock::now();
+                diff = end - start;
+                totalTime += diff.count();
+                printf("%5.0f ", diff.count() * 1000);
+                fflush(stdout);
+            }
+            if (bestTime > totalTime)
+            {
+                bestTime = totalTime;
+                bestBandWidth = bandWidth;
+            }
+            printf("|\n");
         }
+        printf("|---------------------------------------------------------------------------------------------------------------------------------|\n");
+
+        printf("\nBest bandwidth is %d%%, it has %.1f FPS\n", bestBandWidth, 20 / bestTime);
+        camera["BandWidth"] = bestBandWidth;
+#if 0
+        for(int i=0; i<5; ++i) camera.getVideoData(buffer, bufferSize); // flush
 
         printf("\nFrames Per Second Test\n");
         start = std::chrono::high_resolution_clock::now();
         for(int i=0; i<10000; ++i)
         {
             ++frames;
-            if (camera.getVideoData(frame.data(), frame.size()) == false)
+            if (camera.getVideoData(buffer, bufferSize) == false)
                 ++failFrames;
             end = std::chrono::high_resolution_clock::now();
             diff = end - start;
             if (diff.count() > 1)
                 break;
         }
-
+        printf("Fail %d/%d FPS %.1f\n", failFrames, frames, double(frames) / diff.count());
+#endif
         camera.stopVideoCapture();
         camera.close();
 
-        printf("Fail %d/%d FPS %.1f\n", failFrames, frames, double(frames) / diff.count());
     }
 
     return 0;
