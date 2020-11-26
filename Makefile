@@ -4,9 +4,8 @@ CXXSRCS = \
 	./main.cpp \
 	./lib/asicamera.cpp \
 	./lib/asicamerainfo.cpp \
-	./lib/asicameracontrol.cpp
-
-CSRCS = symtab_memory.c
+	./lib/asicameracontrol.cpp \
+	./fix.cpp
 
 INCPATH = \
 	./lib \
@@ -30,12 +29,6 @@ $(error Unknown architecture, please update the Makefile)
 
 endif
 
-#LIBS += -Wl,--wrap=libusb_cancel_transfer
-#LIBS += -Wl,--wrap=libusb_wait_for_event
-#LIBS += -Wl,--wrap=libusb_submit_transfer
-#LIBS += -Wl,--wrap=libusb_handle_events_completed
-#LIBS += -Wl,--wrap=libusb_handle_events_timeout_completed
-#LIBS += -Wl,--wrap=libusb_handle_events_timeout
 LIBS += -Wl,--wrap=_ZN10CCameraFX314startAsyncXferEjjPiPbi
 
 .PHONY: all

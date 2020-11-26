@@ -10,8 +10,6 @@
 #include <numeric>
 #include <cstring>
 
-#include <unistd.h>
-
 using std::to_string;
 std::string to_string(const std::string &str)
 {
@@ -30,202 +28,8 @@ std::string joinAsString(const T &arg, const std::string &separator = ", ")
     );
 }
 
-#include <libusb-1.0/libusb.h>
-#include <stdio.h>
-
-#include "symtab_memory.h"
-
-extern "C"
-{
-
-extern libusb_context *g_usb_context;
-
-static int  * p_lin_XferLen = NULL;
-static bool * p_lin_XferCallbacked = NULL;
-
-static int * p_len_get = NULL;
-
-#if 0
-int __real_libusb_cancel_transfer(struct libusb_transfer *);
-//int __attribute__((weak)) __real_libusb_cancel_transfer(struct libusb_transfer *) { return 0; }
-
-int __wrap_libusb_cancel_transfer(struct libusb_transfer *transfer)
-{
-    int retval = __real_libusb_cancel_transfer(transfer);
-    if (retval == LIBUSB_ERROR_NOT_FOUND)
-    {
-        fprintf(stderr, "__wrap_libusb_cancel_transfer: got LIBUSB_ERROR_NOT_FOUND, fixing...\n");
-        #if 0
-        if (p_lin_XferLen != nullptr)
-            *p_lin_XferLen = -1;
-
-        if (p_lin_XferCallbacked != nullptr)
-            *p_lin_XferCallbacked = true;
-        #endif
-    }
-    else
-    {
-        //fprintf(stderr, "__wrap_libusb_cancel_transfer: OK\n");
-    }
-
-    return retval;
-}
-
-int __real_libusb_submit_transfer(struct libusb_transfer *tr);
-int __wrap_libusb_submit_transfer(struct libusb_transfer *tr)
-{
-    fprintf(stderr, "libusb_submit_transfer: %d %d %d\n", *p_lin_XferLen, *p_len_get, *p_lin_XferCallbacked);
-    return __real_libusb_submit_transfer(tr);
-}
-
-int __real_libusb_wait_for_event(libusb_context *ctx, struct timeval *tv);
-int __wrap_libusb_wait_for_event(libusb_context *ctx, struct timeval *tv)
-{
-    fprintf(stderr, "libusb_wait_for_event: %d %d %d\n", *p_lin_XferLen, *p_len_get, *p_lin_XferCallbacked);
-    return __real_libusb_wait_for_event(ctx, tv);
-}
-
-
-int __real_libusb_handle_events_completed(libusb_context *ctx, int *completed);
-int __wrap_libusb_handle_events_completed(libusb_context *ctx, int *completed)
-{
-    fprintf(stderr, "libusb_handle_events_completed: %d %d %d\n", *p_lin_XferLen, *p_len_get, *p_lin_XferCallbacked);
-    return __real_libusb_handle_events_completed(ctx, completed);
-}
-
-//libusb_handle_events_timeout
-
-int __real_libusb_handle_events_timeout_completed(libusb_context *ctx, struct timeval *tv, int *completed);
-int __wrap_libusb_handle_events_timeout_completed(libusb_context *ctx, struct timeval *tv, int *completed)
-{
-    fprintf(stderr, "libusb_handle_events_timeout_completed: %d %d %d\n", *p_lin_XferLen, *p_len_get, *p_lin_XferCallbacked);
-    return __real_libusb_handle_events_timeout_completed(ctx, tv, completed);
-}
-
-int __real_libusb_handle_events_timeout(libusb_context *ctx, struct timeval *tv);
-int __wrap_libusb_handle_events_timeout(libusb_context *ctx, struct timeval *tv)
-{
-    fprintf(stderr, "libusb_handle_events_timeout: %d %d %d\n", *p_lin_XferLen, *p_len_get, *p_lin_XferCallbacked);
-    return __real_libusb_handle_events_timeout(ctx, tv);
-}
-#endif
-static void fix_asicam()
-{
-    void *result[3];
-    const char *names[] = {"_ZL11lin_XferLen", "_ZL18lin_XferCallbacked", "_ZL7len_get", NULL};
-    symtab_memory(names, result);
-    p_lin_XferLen = reinterpret_cast<int *>(result[0]);
-    p_lin_XferCallbacked = reinterpret_cast<bool *>(result[1]);
-    p_len_get = reinterpret_cast<int *>(result[2]);
-
-}
-
-struct override_callback_data_t
-{
-    uint done;
-    uint size;
-};
-
-static void override_callback(libusb_transfer *transfer)
-{
-    struct override_callback_data_t *data = (struct override_callback_data_t*)transfer->user_data;
-    if (data)
-    {
-        ++data->done;
-        data->size += transfer->actual_length;
-    }
-    transfer->user_data = NULL;
-}
-
-
-extern pthread_mutex_t mtx_usb;
-// poc
-void __wrap__ZN10CCameraFX314startAsyncXferEjjPiPbi(void *ctx, uint timeout1, uint timeout2, int *param_3, bool *, int size)
-{
-    libusb_transfer **transfer = (libusb_transfer **)(*(long *)((long)ctx + 0x58));
-    uint transferCount = *(int *)((long)ctx + 0x48);
-
-    //fprintf(stderr, "\n__wrap__ZN10CCameraFX314startAsyncXferEjjPiPbi %d %d\n", timeout1, timeout2);
-    /*
-
-    Exposure Timeout1 Timeout2
-    1000000   1000     111
-    100000    1100     111
-    10000     213      111
-    1000      213      111
-    */
-
-
-    timeval tv;
-    tv.tv_sec = 0;
-    tv.tv_usec = 10000;
-
-    bool ok = true;
-    
-    override_callback_data_t data;
-    data.done = 0;
-    data.size = 0;
-
-    pthread_mutex_lock(&mtx_usb);
-
-    // submit transfers
-    for(int i=0; i<transferCount; ++i)
-    {
-        transfer[i]->callback  = override_callback;
-        transfer[i]->user_data = &data;
-        transfer[i]->timeout = timeout1;
-        int rc = libusb_submit_transfer(transfer[i]);
-        if (rc != LIBUSB_SUCCESS)
-        {
-            ok = false;
-            fprintf(stderr, "libusb_submit_transfer[%d]: %s\n", i, libusb_error_name(rc));
-        }
-    }
-
-    // wait for all done
-    while (data.done < transferCount && ok)
-    {
-        int rc = libusb_handle_events_timeout(NULL, &tv);
-        if (rc != LIBUSB_SUCCESS)
-        {
-            fprintf(stderr, "libusb_handle_events_timeout fail: %s\n", libusb_error_name(rc));
-            break;
-        }
-    }
-
-    // check transfers, cancel broken
-    if (data.done != transferCount)
-    {
-        fprintf(stderr, "fail, got %d/%d transfers\n", data.done, transferCount);
-        for(int i=0; i<transferCount; ++i)
-        {
-            if (transfer[i]->user_data == NULL)
-                continue;
-
-            int rc = libusb_cancel_transfer(transfer[i]);
-            if (rc != LIBUSB_SUCCESS)
-            {
-                fprintf(stderr, "cannot cancel transfer %d: %s\n", i, libusb_error_name(rc));
-                continue;
-            }
-
-            while(transfer[i]->user_data != NULL)
-                libusb_handle_events_timeout(NULL, &tv);
-        }
-    }
-
-    pthread_mutex_unlock(&mtx_usb);
-    *param_3 = size;
-}
-
-}
-
-extern bool g_bDebugPrint;
-
-
 int main(int argc, char *argv[])
 {
-    fix_asicam();
     //g_bDebugPrint = true;
 
     auto cameraInfoList = AsiCameraInfo::availableCameras();
@@ -336,7 +140,6 @@ int main(int argc, char *argv[])
             double totalTime = 0;
             for(int i=0; i<20; ++i)
             {
-                //fprintf(stderr, "\n");
                 start = std::chrono::high_resolution_clock::now();
                 bool ok = camera.getVideoData(buffer, bufferSize);
                 end = std::chrono::high_resolution_clock::now();
