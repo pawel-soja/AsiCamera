@@ -1,10 +1,11 @@
 #pragma once
 
-
 #include <chrono>
+
 class DeltaTime
 {
     std::chrono::high_resolution_clock::time_point t1;
+    
 public:
     DeltaTime()
     {

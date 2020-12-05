@@ -30,7 +30,7 @@ size_t CameraBoost::bufferSize() const
 
 uchar *CameraBoost::get()
 {
-    uchar *buffer = mBuffersReady.pop(-1);  // take ready buffer
+    uchar *buffer = mBuffersReady.pop(-1);  // take ready buffer, TODO timeout
     mBuffersFree.push(mBuffersBusy.pop(0)); // move processed buffer to free buffer queue
     mBuffersBusy.push(buffer);              // add current buffer to busy queue
     return buffer;
@@ -38,7 +38,7 @@ uchar *CameraBoost::get()
 
 uchar *CameraBoost::peek()
 {
-    return mBuffersReady.peek(1000);
+    return mBuffersReady.peek(1000); // TODO timeout
 }
 
 // reimplement
@@ -88,8 +88,7 @@ void CameraBoost::startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, b
     LibUsbChunkedBulkTransfer &transfer = mTransfer[mTransferIndex];
 
     // at the beginning, transfer has null buffer
-    transfer.wait();
-    mCurrentBuffer = reinterpret_cast<uchar*>(transfer.buffer());
+    mCurrentBuffer = reinterpret_cast<uchar*>(transfer.wait().buffer()); // TODO timeout
 
     if (mCurrentBuffer != nullptr)
     {
@@ -116,8 +115,8 @@ void CameraBoost::startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, b
         assert(true); // TODO
         return;
     }
-    transfer.setBuffer(buffer);
-    transfer.submit();
+    transfer.setBuffer(buffer).submit();
+
 
     // You can validate the buffer size here.
     // resetDeviceNeeded
@@ -194,7 +193,7 @@ int CameraBoost::ReadBuff(uchar* buffer, uint size, uint timeout)
         assert(("[CirBuf::ReadBuff]: cannot find image buffer", imageBuffer != nullptr));
     }
 
-    uchar *p = get();
+    uchar *p = get(); // TODO timeout
     //fprintf(stderr, "[CirBuf::ReadBuff]: %d %d %p\n", *(short*)&p[0x00000000 + 2], *(short*)&p[0x006242f0 + 12], buffer);
 
     *imageBuffer = p;
