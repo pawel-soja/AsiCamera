@@ -2,6 +2,21 @@
 #include <thread>
 #include <functional>
 #include <unistd.h>
+#include <cassert>
+#include "ASICamera2Headers.h"
+
+
+static void **find_pointer_address(void *container, size_t size, const void *pointer)
+{
+    while(size > 0)
+    {
+        if(*(const void **)container == pointer)
+            return (void **)container;
+        container = (void *)((ptrdiff_t)container + 2);
+        size -= 2;
+    }
+    return NULL;
+}
 
 CameraBoost::CameraBoost()
     : mStarted(false)
@@ -16,7 +31,6 @@ void CameraBoost::init(libusb_device_handle *dev, unsigned char endpoint, size_t
     // extend buffer size - better damaged frame than retransmission
     bufferSize  = (bufferSize + MaximumTransferChunkSize - 1) / MaximumTransferChunkSize;
     bufferSize *= MaximumTransferChunkSize;
-
 
     mBuffersBusy.clear();
     mBuffersReady.clear();
@@ -136,4 +150,89 @@ unsigned char *CameraBoost::get()
 unsigned char *CameraBoost::peek()
 {
     return mBuffersReady.peek(1000);
+}
+
+
+// reimplement
+
+void CameraBoost::initAsyncXfer(int bufferSize, int transferCount, int chunkSize, uchar endpoint, uchar *buffer)
+{
+    fprintf(stderr, "[CCameraFX3::initAsyncXfer]: init CameraBoost device %p, endpoint 0x%x, buffer size %d\n", mDeviceHandle, endpoint, bufferSize);
+    
+    resetDeviceNeeded = false;
+    init(mDeviceHandle, endpoint, bufferSize);
+
+    usbBuffer = find_pointer_address(mCCameraBase, 0x600, buffer);
+    realUsbBuffer = buffer;
+
+}
+
+void CameraBoost::startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, bool *stop, int size)
+{
+    if (resetDeviceNeeded)
+        return;
+
+    start(timeout1);
+    //fprintf(stderr, "[CCameraFX3::startAsyncXfer]: timeout %d %d\n", timeout1, timeout2);
+    if (peek() != nullptr)
+    {
+        *bytesRead = size;
+    }
+    else
+    {
+        fprintf(stderr, "[CCameraFX3::startAsyncXfer]: reset device needed\n");
+        resetDeviceNeeded = true;
+    }
+}
+
+void CameraBoost::releaseAsyncXfer()
+{
+    fprintf(stderr, "[CameraBoost::releaseAsyncXfer]\n");
+    stop();
+
+    *usbBuffer = realUsbBuffer;
+    *imageBuffer = realImageBuffer;
+}
+
+int CameraBoost::ReadBuff(unsigned char* buffer, uint size, uint timeout)
+{
+    if (imageBuffer == nullptr)
+    {
+        imageBuffer = find_pointer_address(mCCameraBase, 0x600, buffer);
+        realImageBuffer = buffer;
+        assert(("[CirBuf::ReadBuff]: cannot find image buffer", imageBuffer != nullptr));
+    }
+
+    unsigned char *p = get();
+    fprintf(stderr, "[CirBuf::ReadBuff]: %d %d %p\n", *(short*)&p[0x00000000 + 2], *(short*)&p[0x006242f0 + 12], buffer);
+
+    *imageBuffer = p;
+
+    return 1;
+}
+
+int CameraBoost::InsertBuff(uchar *buffer, int i1, ushort v1, int i2, ushort v2, int a5, int a6, int a7)
+{
+    #if 0
+    CCameraBase * ccameraBase = getCCameraBase(cirBuf);
+    
+    BoostCameraData *data = boostCameraData(circBuf);
+
+    if (data->resetDeviceNeeded)
+        return 2;
+    
+    if (data->cameraBoost.isStarted() == false)
+    {
+        fprintf(stderr, "[CirBuf::InsertBuff]: reset device needed\n");
+        data->resetDeviceNeeded = true;
+        return 2; // fail frame
+    }
+#endif
+    return 0;
+}
+
+void CameraBoost::ResetDevice()
+{
+    fprintf(stderr, "[CCameraFX3::ResetDevice]\n");
+    resetDeviceNeeded = false;
 }

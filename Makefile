@@ -35,9 +35,8 @@ BOOST=y
 
 ifeq ($(BOOST), y)
 
-CXXSRCS += ./fix.cpp
+CXXSRCS += ./wrap.cpp
 CXXSRCS += ./cameraboost.cpp
-CXXSRCS += ./relationship.cpp
 CXXSRCS += ./libusb-cpp/libusbbulktransfer.cpp
 CXXSRCS += ./libusb-cpp/libusbchunkedbulktransfer.cpp
 
