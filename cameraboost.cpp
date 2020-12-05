@@ -19,7 +19,6 @@ static void **find_pointer_address(void *container, size_t size, const void *poi
 }
 
 CameraBoost::CameraBoost()
-    : mStarted(false)
 {
     fprintf(stderr, "[CameraBoost::CameraBoost]: created\n");
 }
@@ -29,98 +28,18 @@ size_t CameraBoost::bufferSize() const
     return mBufferSize;
 }
 
-void CameraBoost::start(uint timeout)
+uchar *CameraBoost::get()
 {
-    if (mStarted.exchange(true))
-        return;
-
-    if (mThread.joinable())
-        mThread.join();
-
-    mThread = std::thread([this, timeout](){
-        
-        unsigned char *buffer = nullptr;
-
-        for (LibUsbChunkedBulkTransfer &transfer: mTransfer)
-            transfer.setBuffer(nullptr);
-        
-        //pthread_mutex_lock(&mtx_usb);
-
-        struct Cleanup {
-            std::function<void()> f;
-            ~Cleanup() { f(); }
-        } cleanup{[&](){
-            fprintf(stderr, "[CameraBoost::thread]: cleanup\n");
-            mStarted = false;
-            mBuffersFree.push(buffer);
-            //pthread_mutex_unlock(&mtx_usb);
-        }};
-
-        while(true)
-        {
-            for (LibUsbChunkedBulkTransfer &transfer: mTransfer)
-            {
-                transfer.wait(1000);
-                buffer = reinterpret_cast<unsigned char*>(transfer.buffer());
-                if (!mStarted)
-                {
-                    fprintf(stderr, "[CameraBoost::thread]: exit triggered...\n");
-                    return;
-                }
-                
-                if (buffer != nullptr && transfer.actualLength() != mBufferSize)
-                {
-                    fprintf(stderr, "[CameraBoost::thread]: invalid buffer size %d != %d\n", transfer.actualLength(), mBufferSize);
-                    if (transfer.actualLength() == 0) // fatal error
-                        return;
-                    
-                    mBuffersFree.push(buffer);
-                }
-                else
-                {
-                    mBuffersReady.push(buffer);
-                }
-                
-                buffer = mBuffersFree.pop(100);
-                if (buffer == nullptr)
-                {
-                    fprintf(stderr, "[CameraBoost::thread]: buffer timeout, exiting...\n");
-                    return;
-                }
-                transfer.setBuffer(buffer).submit();
-            }
-        }
-    });
-}
-
-void CameraBoost::stop()
-{
-    // TODO remove buffers ?
-    fprintf(stderr, "[CameraBoost::stop]\n");
-    mStarted = false;
-    for (LibUsbChunkedBulkTransfer &transfer: mTransfer)
-        transfer.cancel();
-    mThread.join();
-}
-
-bool CameraBoost::isStarted() const
-{
-    return mStarted;
-}
-
-unsigned char *CameraBoost::get()
-{
-    unsigned char *buffer = mBuffersReady.pop(-1);     // take ready buffer
-    mBuffersFree.push(mBuffersBusy.pop(0)); // move processed buffer to free buffer
-    mBuffersBusy.push(buffer);                         // add current buffer to busy queue
+    uchar *buffer = mBuffersReady.pop(-1);  // take ready buffer
+    mBuffersFree.push(mBuffersBusy.pop(0)); // move processed buffer to free buffer queue
+    mBuffersBusy.push(buffer);              // add current buffer to busy queue
     return buffer;
 }
 
-unsigned char *CameraBoost::peek()
+uchar *CameraBoost::peek()
 {
     return mBuffersReady.peek(1000);
 }
-
 
 // reimplement
 
@@ -132,16 +51,17 @@ void CameraBoost::initAsyncXfer(int bufferSize, int transferCount, int chunkSize
     mBufferSize = bufferSize;
 
     // extend buffer size - better damaged frame than retransmission
+#if 0
     bufferSize  = (bufferSize + MaximumTransferChunkSize - 1) / MaximumTransferChunkSize;
     bufferSize *= MaximumTransferChunkSize;
-
+#endif
     mBuffersBusy.clear();
     mBuffersReady.clear();
     mBuffersFree.clear();
 
     // Lazy load
     std::thread([this, bufferSize](){
-        for (std::vector<unsigned char> &buffer: mBuffer)
+        for (std::vector<uchar> &buffer: mBuffer)
         {
             buffer.resize(bufferSize);
             if (buffer.size() != bufferSize)
@@ -165,29 +85,107 @@ void CameraBoost::startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, b
     if (resetDeviceNeeded)
         return;
 
-    start(timeout1);
-    //fprintf(stderr, "[CCameraFX3::startAsyncXfer]: timeout %d %d\n", timeout1, timeout2);
-    if (peek() != nullptr)
+    LibUsbChunkedBulkTransfer &transfer = mTransfer[mTransferIndex];
+
+    // at the beginning, transfer has null buffer
+    transfer.wait();
+    mCurrentBuffer = reinterpret_cast<uchar*>(transfer.buffer());
+
+    if (mCurrentBuffer != nullptr)
     {
-        *bytesRead = size;
+        if (transfer.actualLength() == 0)
+        {
+            fprintf(stderr, "[CameraBoost::startAsyncXfer]: null transfer length, reset device needed\n");
+            resetDeviceNeeded = true;
+            mBuffersFree.push(mCurrentBuffer);
+            mCurrentBuffer = nullptr;
+            return;
+        }
+        if (transfer.actualLength() != mBufferSize)
+        {
+            fprintf(stderr, "[CameraBoost::startAsyncXfer]: invalid transfer length %d != %d\n", transfer.actualLength(), mBufferSize);
+            mBuffersFree.push(mCurrentBuffer);
+            mCurrentBuffer = nullptr;
+        }
     }
-    else
+
+    uchar *buffer = mBuffersFree.pop(100);
+    if (buffer == nullptr)
     {
-        fprintf(stderr, "[CCameraFX3::startAsyncXfer]: reset device needed\n");
-        resetDeviceNeeded = true;
+        fprintf(stderr, "[CameraBoost::startAsyncXfer]: buffer timeout, exiting...\n");
+        assert(true); // TODO
+        return;
+    }
+    transfer.setBuffer(buffer);
+    transfer.submit();
+
+    // You can validate the buffer size here.
+    // resetDeviceNeeded
+
+    *bytesRead = size; // trigger 'OK'
+
+    mTransferIndex = (mTransferIndex + 1) % Transfers;
+}
+
+int CameraBoost::InsertBuff(uchar *buffer, int bufferSize, ushort v1, int i1, ushort v2, int i2, int i3, int i4)
+{
+    if (mCurrentBuffer == nullptr)
+        return 0;
+
+    // This is where you can validate the data in the buffer.
+    // resetDeviceNeeded
+    ushort * b16 = reinterpret_cast<ushort *>(mCurrentBuffer);
+
+    if (
+        (v1 != 0 && b16[i1] != v1) ||
+        (v2 != 0 && b16[i2] != v2)
+    )
+    {
+        mBuffersFree.push(mCurrentBuffer);
+        fprintf(stderr, "[CameraBoost::InsertBuff]: [%d]=%02x (%02x), [%d]=%02x (%02x)\n", i1, b16[i1], v1, i2, b16[i2], v2);
+        return 0;
+    }
+
+    if (i3 != 0 && i4 != 0 && b16[i3] != b16[i4])
+    {
+        fprintf(stderr, "[CameraBoost::InsertBuff]: [%d]=%02x, [%d]=%02x\n", i3, b16[i3], i4, b16[i4]);
+        mBuffersFree.push(mCurrentBuffer);
+        //return 2;
+        return 0;
+    }
+
+    mBuffersReady.push(mCurrentBuffer);
+
+    return 0;
+}
+
+void CameraBoost::ResetDevice()
+{
+    fprintf(stderr, "[CameraBoost::ResetDevice]: catched\n");
+    resetDeviceNeeded = false;
+    for(LibUsbChunkedBulkTransfer &transfer: mTransfer)
+    {
+        transfer.cancel();
+        mBuffersFree.push(reinterpret_cast<uchar*>(transfer.buffer()));
+        transfer.setBuffer(nullptr);
     }
 }
 
 void CameraBoost::releaseAsyncXfer()
 {
     fprintf(stderr, "[CameraBoost::releaseAsyncXfer]\n");
-    stop();
+    for(LibUsbChunkedBulkTransfer &transfer: mTransfer)
+    {
+        transfer.cancel();
+        mBuffersFree.push(reinterpret_cast<uchar*>(transfer.buffer()));
+        transfer.setBuffer(nullptr);
+    }
 
     *usbBuffer = realUsbBuffer;
     *imageBuffer = realImageBuffer;
 }
 
-int CameraBoost::ReadBuff(unsigned char* buffer, uint size, uint timeout)
+int CameraBoost::ReadBuff(uchar* buffer, uint size, uint timeout)
 {
     if (imageBuffer == nullptr)
     {
@@ -196,36 +194,10 @@ int CameraBoost::ReadBuff(unsigned char* buffer, uint size, uint timeout)
         assert(("[CirBuf::ReadBuff]: cannot find image buffer", imageBuffer != nullptr));
     }
 
-    unsigned char *p = get();
-    fprintf(stderr, "[CirBuf::ReadBuff]: %d %d %p\n", *(short*)&p[0x00000000 + 2], *(short*)&p[0x006242f0 + 12], buffer);
+    uchar *p = get();
+    //fprintf(stderr, "[CirBuf::ReadBuff]: %d %d %p\n", *(short*)&p[0x00000000 + 2], *(short*)&p[0x006242f0 + 12], buffer);
 
     *imageBuffer = p;
 
     return 1;
-}
-
-int CameraBoost::InsertBuff(uchar *buffer, int i1, ushort v1, int i2, ushort v2, int a5, int a6, int a7)
-{
-    #if 0
-    CCameraBase * ccameraBase = getCCameraBase(cirBuf);
-    
-    BoostCameraData *data = boostCameraData(circBuf);
-
-    if (data->resetDeviceNeeded)
-        return 2;
-    
-    if (data->cameraBoost.isStarted() == false)
-    {
-        fprintf(stderr, "[CirBuf::InsertBuff]: reset device needed\n");
-        data->resetDeviceNeeded = true;
-        return 2; // fail frame
-    }
-#endif
-    return 0;
-}
-
-void CameraBoost::ResetDevice()
-{
-    fprintf(stderr, "[CCameraFX3::ResetDevice]\n");
-    resetDeviceNeeded = false;
 }

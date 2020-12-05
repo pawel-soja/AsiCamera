@@ -3,13 +3,14 @@
 
 #include <limits>
 #include <vector>
-#include <chrono>
 #include <numeric>
 #include <cstring>
-#include <ASICamera2.h>
 #include <vector>
 
 #include <unistd.h>
+
+#include <ASICamera2.h>
+#include "deltatime.h"
 
 extern bool g_bDebugPrint;
 
@@ -33,8 +34,7 @@ extern "C" ASICAMERA_API  ASI_ERROR_CODE ASIGetVideoDataPointer(int iCameraID, u
 
 int main(int argc, char *argv[])
 {
-    g_bDebugPrint = true;
-
+    //g_bDebugPrint = true;
 
     if (ASIGetNumOfConnectedCameras() == 0)
     {
@@ -45,8 +45,7 @@ int main(int argc, char *argv[])
     int bandWidth = 100;
     int highSpeedMode = 1;
     int gain = 100;
-    std::vector<unsigned char> buffer(1024*1024*6*2, 0);
-    std::vector<unsigned char> bufferCopy(1024*1024*6*2, 0);
+
     ASIOpenCamera(0);
     //return 0 ;
     ASIInitCamera(0);
@@ -71,30 +70,26 @@ int main(int argc, char *argv[])
         printf("Set '%s' to %s\n", argv[i], argv[i+1]);
     }  
 
-    ASISetControlValue(0, ASI_EXPOSURE,          exposure, ASI_FALSE);
+    ASISetControlValue(0, ASI_EXPOSURE,          exposure,      ASI_FALSE);
     ASISetControlValue(0, ASI_HIGH_SPEED_MODE,   highSpeedMode, ASI_FALSE);
-    ASISetControlValue(0, ASI_BANDWIDTHOVERLOAD, bandWidth, ASI_FALSE);
+    ASISetControlValue(0, ASI_BANDWIDTHOVERLOAD, bandWidth,     ASI_FALSE);
+    ASISetControlValue(0, ASI_GAIN,              gain,          ASI_FALSE);
     
     
-    ASISetControlValue(0, ASI_GAIN, gain,  ASI_FALSE);
-    
-    
-    
-    ASIStartVideoCapture(0);
 
-
-    std::chrono::duration<double> diff;
-    std::chrono::high_resolution_clock::time_point start, end;
-
+    std::vector<unsigned char> buffer(1024*1024*6*2, 0);
     unsigned char *ptr = buffer.data();
     size_t size = buffer.size();
+
     FILE *f = NULL;
     //f = fopen("image.raw", "w");
-
     unsigned char *pbuffer;
-    for(int i=0; i<100; ++i)
+
+    ASIStartVideoCapture(0);
+    DeltaTime deltaTime;
+    for(int i=0; i<20; ++i)
     {
-        start = std::chrono::high_resolution_clock::now();
+
         ASI_ERROR_CODE rc;
 #if 0
         rc = ASIGetVideoData(
@@ -113,12 +108,8 @@ int main(int argc, char *argv[])
             f = NULL;
         }
         //continue;
-        
-        //fprintf(stderr, "ASIGetVideoData: 0x%x\n", *(int*)ptr);
-        //continue;
-        end = std::chrono::high_resolution_clock::now();
-        diff = end - start;
-        printf("timeframe: %5.0fms\n", diff.count() * 1000);
+
+        printf("timeframe: %5.0fms\n", deltaTime.stop() * 1000);
     }
     ASIStopVideoCapture(0);
 

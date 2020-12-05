@@ -37,7 +37,6 @@ ifeq ($(BOOST), y)
 
 CXXSRCS += ./wrap.cpp
 CXXSRCS += ./cameraboost.cpp
-CXXSRCS += ./libusb-cpp/libusbbulktransfer.cpp
 CXXSRCS += ./libusb-cpp/libusbchunkedbulktransfer.cpp
 
 # boost
@@ -59,11 +58,9 @@ LIBS += $(addprefix -Wl$(comma)--wrap=,$(WRAP))
 .PHONY: all
 all: $(OUT)
 
+# recompile all files
 $(OUT): $(CXXSRCS) $(CSRCS)
 	$(CC) -o $@ $^ $(addprefix -I,$(INCPATH)) $(LIBS) -O2
-
-.PHONY: test
-test: purge all run
 
 .PHONY: purge
 purge:

@@ -4,7 +4,6 @@
 #include "queue.h"
 #include <atomic>
 #include <libusb-cpp/libusb.h>
-#include <thread>
 
 #include "stypes.h"
 
@@ -16,23 +15,17 @@ class CameraBoost
 public:
     enum // constants
     {
-        Buffers = 16,
-        Transfers = 2,
+        Buffers = 8,
+        Transfers = 3,
         MaximumTransferChunkSize = 1024*1024
     };
 
 public:
     CameraBoost();
-
     size_t bufferSize() const;
 
-    void start(uint timeout = 1000);
-    void stop();
-
-    bool isStarted() const;
-
-    unsigned char *get();
-    unsigned char *peek();
+    uchar *get();
+    uchar *peek();
 
 public: // reimplement
     void initAsyncXfer(int bufferSize, int transferCount, int chunkSize, uchar endpoint, uchar *buffer);
@@ -41,26 +34,25 @@ public: // reimplement
 
     void ResetDevice();
 
-    int ReadBuff(unsigned char* buffer, uint size, uint timeout);
+    int ReadBuff(uchar* buffer, uint size, uint timeout);
     int InsertBuff(uchar *buffer, int i1, ushort v1, int i2, ushort v2, int a5, int a6, int a7);
 
 protected:
-    std::vector<unsigned char> mBuffer[Buffers];
+    std::vector<uchar> mBuffer[Buffers];
     
-    Queue<unsigned char*> mBuffersFree;
-    Queue<unsigned char*> mBuffersReady;
-    Queue<unsigned char*> mBuffersBusy;
+    Queue<uchar*> mBuffersFree;
+    Queue<uchar*> mBuffersReady;
+    Queue<uchar*> mBuffersBusy;
 
-    std::atomic<bool> mStarted;
+    uchar *mCurrentBuffer = nullptr;
 
     LibUsbChunkedBulkTransfer  mTransfer[Transfers];
-
-    std::thread mThread;
+    int mTransferIndex = 0;
 
     size_t mBufferSize;
 
 public: // taken from the library
-    int mCameraID;
+    int                   mCameraID;
     libusb_device_handle *mDeviceHandle = nullptr;
     CCameraBase          *mCCameraBase = nullptr;
     CirBuf               *mCirBuf = nullptr;

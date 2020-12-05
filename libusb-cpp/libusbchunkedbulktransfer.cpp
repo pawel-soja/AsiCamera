@@ -62,7 +62,7 @@ public:
 
     void cancel()
     {
-        fprintf(stderr, "[LibUsbChunkedBulkTransferPrivate::cancel]\n");
+        //fprintf(stderr, "[LibUsbChunkedBulkTransferPrivate::cancel]\n");
         for(int i=0; i<pending; ++i)
         {
             int rc = libusb_cancel_transfer(transfer[i]);
@@ -133,7 +133,7 @@ LibUsbChunkedBulkTransfer& LibUsbChunkedBulkTransfer::submit()
 
 LibUsbChunkedBulkTransfer& LibUsbChunkedBulkTransfer::cancel()
 {
-    fprintf(stderr, "[LibUsbChunkedBulkTransfer::cancel]\n");
+    //fprintf(stderr, "[LibUsbChunkedBulkTransfer::cancel]\n");
     d_func()->cancel();
     wait();    
     // TODO event
@@ -182,6 +182,7 @@ LibUsbChunkedBulkTransfer& LibUsbChunkedBulkTransfer::wait(uint timeout)
 
     }
     d->pending = 0;
+    return *this;
     if (d->done != d->count)
     {
         fprintf(stderr, "[LibUsbChunkedBulkTransfer::wait]: error was corrupted, %d/%d\n", d->done, d->count);

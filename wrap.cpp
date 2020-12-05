@@ -69,9 +69,12 @@ static CameraBoost *& getCameraBoost(CirBuf *cirBuf)
     return gCameraBoost_CirBuf[cirBuf];
 }
 
+extern "C"
+{
+
 // #1
-extern "C" int __real_ASIOpenCamera(int iCameraID);
-extern "C" int __wrap_ASIOpenCamera(int iCameraID)
+int __real_ASIOpenCamera(int iCameraID);
+int __wrap_ASIOpenCamera(int iCameraID)
 {
     fprintf(stderr, "[ASIOpenCamera]: grab CameraID %d\n", iCameraID);
     gActiveCameraID = iCameraID;
@@ -80,8 +83,8 @@ extern "C" int __wrap_ASIOpenCamera(int iCameraID)
 }
 
 // #2
-extern "C" void __real__ZN11CCameraBase12InitVariableEv(CCameraBase * ccameraBase);
-extern "C" void __wrap__ZN11CCameraBase12InitVariableEv(CCameraBase * ccameraBase)
+void __real__ZN11CCameraBase12InitVariableEv(CCameraBase * ccameraBase);
+void __wrap__ZN11CCameraBase12InitVariableEv(CCameraBase * ccameraBase)
 {
     fprintf(stderr, "[CCameraBase::InitVariable]: grab CCameraBase %p\n", ccameraBase);
     CameraBoost *cameraBoost = getCameraBoost();
@@ -91,8 +94,8 @@ extern "C" void __wrap__ZN11CCameraBase12InitVariableEv(CCameraBase * ccameraBas
 }
 
 // #3
-extern "C" int __real_libusb_open(libusb_device *dev, libusb_device_handle **devh);
-extern "C" int __wrap_libusb_open(libusb_device *dev, libusb_device_handle **devh)
+int __real_libusb_open(libusb_device *dev, libusb_device_handle **devh);
+int __wrap_libusb_open(libusb_device *dev, libusb_device_handle **devh)
 {
     int rc = __real_libusb_open(dev, devh);
     fprintf(stderr, "[libusb_open]: grab libusb_device_handle %p\n", *devh);
@@ -101,8 +104,8 @@ extern "C" int __wrap_libusb_open(libusb_device *dev, libusb_device_handle **dev
 }
 
 // #4
-extern "C" void __real__ZN6CirBufC1El(CirBuf *cirBuf, long size);
-extern "C" void __wrap__ZN6CirBufC1El(CirBuf *cirBuf, long size)
+void __real__ZN6CirBufC1El(CirBuf *cirBuf, long size);
+void __wrap__ZN6CirBufC1El(CirBuf *cirBuf, long size)
 {
     CameraBoost *cameraBoost = getCameraBoost();
     cameraBoost->mCirBuf = cirBuf;
@@ -111,12 +114,6 @@ extern "C" void __wrap__ZN6CirBufC1El(CirBuf *cirBuf, long size)
 
     __real__ZN6CirBufC1El(cirBuf, size);
 }
-
-
-
-
-extern "C"
-{
 
 // CCameraFX3::ResetDevice
 int __real__ZN10CCameraFX311ResetDeviceEv(CCameraFX3 *ccameraFX3);
@@ -130,8 +127,8 @@ int __wrap__ZN10CCameraFX311ResetDeviceEv(CCameraFX3 *ccameraFX3)
 }
 
 // CCameraFX3::initAsyncXfer
-void __real__ZN10CCameraFX313initAsyncXferEiiihPh(CCameraFX3 *ccameraFX3, int bufferSize, int transferCount, int chunkSize, unsigned char endpoint, unsigned char *buffer);
-void __wrap__ZN10CCameraFX313initAsyncXferEiiihPh(CCameraFX3 *ccameraFX3, int bufferSize, int transferCount, int chunkSize, unsigned char endpoint, unsigned char *buffer)
+void __real__ZN10CCameraFX313initAsyncXferEiiihPh(CCameraFX3 *ccameraFX3, int bufferSize, int transferCount, int chunkSize, uchar endpoint, uchar *buffer);
+void __wrap__ZN10CCameraFX313initAsyncXferEiiihPh(CCameraFX3 *ccameraFX3, int bufferSize, int transferCount, int chunkSize, uchar endpoint, uchar *buffer)
 {
     if (!gBoostCameraEnabled)
         return __real__ZN10CCameraFX313initAsyncXferEiiihPh(ccameraFX3, bufferSize, transferCount, chunkSize, endpoint, buffer);
@@ -150,18 +147,18 @@ void __wrap__ZN10CCameraFX314startAsyncXferEjjPiPbi(CCameraFX3 *ccameraFX3, uint
 }
 
 // CirBuf::InsertBuff
-int __real__ZN6CirBuf10InsertBuffEPhititiii(CirBuf *cirBuf, uchar *buffer, int a1, ushort a2, int a3, ushort a4, int a5, int a6, int a7);
-int __wrap__ZN6CirBuf10InsertBuffEPhititiii(CirBuf *cirBuf, uchar *buffer, int i1, ushort v1, int i2, ushort v2, int a5, int a6, int a7)
+int __real__ZN6CirBuf10InsertBuffEPhititiii(CirBuf *cirBuf, uchar *buffer, int size, ushort v1, int i1, ushort v2, int i2, int i3, int i4);
+int __wrap__ZN6CirBuf10InsertBuffEPhititiii(CirBuf *cirBuf, uchar *buffer, int size, ushort v1, int i1, ushort v2, int i2, int i3, int i4)
 {
     if (!gBoostCameraEnabled)
-        return __real__ZN6CirBuf10InsertBuffEPhititiii(cirBuf, buffer, i1, v1, i2, v2, a5, a6, a7);
+        return __real__ZN6CirBuf10InsertBuffEPhititiii(cirBuf, buffer, size, v1, i1, v2, i2, i3, i4);
 
-    return getCameraBoost(cirBuf)->InsertBuff(buffer, i1, v1, i2, v2, a5, a6, a7);
+    return getCameraBoost(cirBuf)->InsertBuff(buffer, size, v1, i1, v2, i2, i3, i4);
 }
 
 // CirBuf::ReadBuff
-int __real__ZN6CirBuf8ReadBuffEPhii(CirBuf *cirBuf, unsigned char* buffer, uint size, uint timeout);
-int __wrap__ZN6CirBuf8ReadBuffEPhii(CirBuf *cirBuf, unsigned char* buffer, uint size, uint timeout)
+int __real__ZN6CirBuf8ReadBuffEPhii(CirBuf *cirBuf, uchar* buffer, uint size, uint timeout);
+int __wrap__ZN6CirBuf8ReadBuffEPhii(CirBuf *cirBuf, uchar* buffer, uint size, uint timeout)
 {
     if (!gBoostCameraEnabled)
         return __real__ZN6CirBuf8ReadBuffEPhii(cirBuf, buffer, size, timeout);

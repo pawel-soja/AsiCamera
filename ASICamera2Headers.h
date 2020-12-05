@@ -26,7 +26,7 @@ class CCameraBase: public CCameraFX3
     char dummy[1];
 public:
     CCameraBase();
-    virtual ~CCameraBase();
+    virtual ~CCameraBase(); // important virtual
 
 public:
     void InitVariable();
