@@ -23,7 +23,6 @@ public:
 
 public:
     CameraBoost();
-    void init(libusb_device_handle *dev, unsigned char endpoint, size_t bufferSize);
 
     size_t bufferSize() const;
 

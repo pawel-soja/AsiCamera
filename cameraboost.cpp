@@ -24,37 +24,6 @@ CameraBoost::CameraBoost()
     fprintf(stderr, "[CameraBoost::CameraBoost]: created\n");
 }
 
-void CameraBoost::init(libusb_device_handle *dev, unsigned char endpoint, size_t bufferSize)
-{
-    mBufferSize = bufferSize;
-
-    // extend buffer size - better damaged frame than retransmission
-    bufferSize  = (bufferSize + MaximumTransferChunkSize - 1) / MaximumTransferChunkSize;
-    bufferSize *= MaximumTransferChunkSize;
-
-    mBuffersBusy.clear();
-    mBuffersReady.clear();
-    mBuffersFree.clear();
-
-    // Lazy load
-    std::thread([this, bufferSize](){
-        for (std::vector<unsigned char> &buffer: mBuffer)
-        {
-            buffer.resize(bufferSize);
-            if (buffer.size() != bufferSize)
-            {
-                fprintf(stderr, "[CameraBoost::init]: allocation fail\n");
-                break;
-            }
-            mBuffersFree.push(buffer.data());
-        }
-    }).detach();
-
-    
-    for (LibUsbChunkedBulkTransfer &transfer: mTransfer)
-        transfer = LibUsbChunkedBulkTransfer(dev, endpoint, NULL, bufferSize, MaximumTransferChunkSize);
-}
-
 size_t CameraBoost::bufferSize() const
 {
     return mBufferSize;
@@ -160,11 +129,35 @@ void CameraBoost::initAsyncXfer(int bufferSize, int transferCount, int chunkSize
     fprintf(stderr, "[CCameraFX3::initAsyncXfer]: init CameraBoost device %p, endpoint 0x%x, buffer size %d\n", mDeviceHandle, endpoint, bufferSize);
     
     resetDeviceNeeded = false;
-    init(mDeviceHandle, endpoint, bufferSize);
+    mBufferSize = bufferSize;
+
+    // extend buffer size - better damaged frame than retransmission
+    bufferSize  = (bufferSize + MaximumTransferChunkSize - 1) / MaximumTransferChunkSize;
+    bufferSize *= MaximumTransferChunkSize;
+
+    mBuffersBusy.clear();
+    mBuffersReady.clear();
+    mBuffersFree.clear();
+
+    // Lazy load
+    std::thread([this, bufferSize](){
+        for (std::vector<unsigned char> &buffer: mBuffer)
+        {
+            buffer.resize(bufferSize);
+            if (buffer.size() != bufferSize)
+            {
+                fprintf(stderr, "[CameraBoost::init]: allocation fail\n");
+                break;
+            }
+            mBuffersFree.push(buffer.data());
+        }
+    }).detach();
+
+    for (LibUsbChunkedBulkTransfer &transfer: mTransfer)
+        transfer = LibUsbChunkedBulkTransfer(mDeviceHandle, endpoint, NULL, bufferSize, MaximumTransferChunkSize);
 
     usbBuffer = find_pointer_address(mCCameraBase, 0x600, buffer);
     realUsbBuffer = buffer;
-
 }
 
 void CameraBoost::startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, bool *stop, int size)
