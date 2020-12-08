@@ -9,26 +9,11 @@
 
 #include <unistd.h>
 
-#include <ASICamera2.h>
+#include <ASICamera2Boost.h>
 #include "deltatime.h"
 
 extern bool g_bDebugPrint;
 
-extern "C" {
-void * __real_memcpy ( void * destination, const void * source, size_t num) __attribute__((weak));
-void * __real_memcpy ( void * destination, const void * source, size_t num);
-void * __wrap_memcpy ( void * destination, const void * source, size_t num)
-{
-    if (source != destination)
-    {
-        if (num >= 1024*1024)
-            fprintf(stderr, "[memcpy] Big copy detected: %d Bytes\n", num);
-        
-        //fprintf(stderr, "[memcpy]: copy %d\n", num);
-    }
-    return __real_memcpy(destination, source, num);
-}
-}
 
 extern "C" ASICAMERA_API  ASI_ERROR_CODE ASIGetVideoDataPointer(int iCameraID, unsigned char** pBuffer, int iWaitms);
 
@@ -49,7 +34,8 @@ int main(int argc, char *argv[])
     ASIOpenCamera(0);
     //return 0 ;
     ASIInitCamera(0);
-    
+
+        
 
     for(int i=1; i<(argc-1); i += 2)
     {

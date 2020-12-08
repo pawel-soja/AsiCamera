@@ -1,3 +1,18 @@
+/*
+    Copyright (C) 2020 by Pawel Soja <kernel32.pl@gmail.com>
+    FPS Meter
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+*/
 #include "cameraboost.h"
 #include <thread>
 #include <functional>
@@ -20,7 +35,7 @@ static void **find_pointer_address(void *container, size_t size, const void *poi
 
 CameraBoost::CameraBoost()
 {
-    fprintf(stderr, "[CameraBoost::CameraBoost]: created\n");
+    dbg_printf("created");
 }
 
 size_t CameraBoost::bufferSize() const
@@ -45,7 +60,7 @@ uchar *CameraBoost::peek()
 
 void CameraBoost::initAsyncXfer(int bufferSize, int transferCount, int chunkSize, uchar endpoint, uchar *buffer)
 {
-    fprintf(stderr, "[CCameraFX3::initAsyncXfer]: init CameraBoost device %p, endpoint 0x%x, buffer size %d\n", mDeviceHandle, endpoint, bufferSize);
+    dbg_printf("device %p, endpoint 0x%x, buffer size %d", mDeviceHandle, endpoint, bufferSize);
     
     resetDeviceNeeded = false;
     mBufferSize = bufferSize;
@@ -64,9 +79,9 @@ void CameraBoost::initAsyncXfer(int bufferSize, int transferCount, int chunkSize
         for (std::vector<uchar> &buffer: mBuffer)
         {
             buffer.resize(bufferSize);
-            if (buffer.size() != bufferSize)
+            if (buffer.size() != size_t(bufferSize))
             {
-                fprintf(stderr, "[CameraBoost::init]: allocation fail\n");
+                err_printf("allocation fail");
                 break;
             }
             mBuffersFree.push(buffer.data());
@@ -94,7 +109,7 @@ void CameraBoost::startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, b
     {
         if (transfer.actualLength() == 0)
         {
-            fprintf(stderr, "[CameraBoost::startAsyncXfer]: null transfer length, reset device needed\n");
+            dbg_printf("null transfer length, reset device needed");
             resetDeviceNeeded = true;
             mBuffersFree.push(mCurrentBuffer);
             mCurrentBuffer = nullptr;
@@ -102,7 +117,7 @@ void CameraBoost::startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, b
         }
         if (transfer.actualLength() != mBufferSize)
         {
-            fprintf(stderr, "[CameraBoost::startAsyncXfer]: invalid transfer length %d != %d\n", transfer.actualLength(), mBufferSize);
+            dbg_printf("invalid transfer length %u != %u", transfer.actualLength(), uint(mBufferSize));
             mBuffersFree.push(mCurrentBuffer);
             mCurrentBuffer = nullptr;
         }
@@ -111,17 +126,13 @@ void CameraBoost::startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, b
     uchar *buffer = mBuffersFree.pop(100);
     if (buffer == nullptr)
     {
-        fprintf(stderr, "[CameraBoost::startAsyncXfer]: buffer timeout, exiting...\n");
-        assert(true); // TODO
+        dbg_printf("buffer timeout, exiting...");
+        //abort();
         return;
     }
     transfer.setBuffer(buffer).submit();
 
-
-    // You can validate the buffer size here.
-    // resetDeviceNeeded
-
-    *bytesRead = size; // trigger 'OK'
+    *bytesRead = size;
 
     mTransferIndex = (mTransferIndex + 1) % Transfers;
 }
@@ -131,8 +142,6 @@ int CameraBoost::InsertBuff(uchar *buffer, int bufferSize, ushort v1, int i1, us
     if (mCurrentBuffer == nullptr)
         return 0;
 
-    // This is where you can validate the data in the buffer.
-    // resetDeviceNeeded
     ushort * b16 = reinterpret_cast<ushort *>(mCurrentBuffer);
 
     if (
@@ -141,13 +150,13 @@ int CameraBoost::InsertBuff(uchar *buffer, int bufferSize, ushort v1, int i1, us
     )
     {
         mBuffersFree.push(mCurrentBuffer);
-        fprintf(stderr, "[CameraBoost::InsertBuff]: [%d]=%02x (%02x), [%d]=%02x (%02x)\n", i1, b16[i1], v1, i2, b16[i2], v2);
+        dbg_printf("[%d]=%02x (%02x), [%d]=%02x (%02x)", i1, b16[i1], v1, i2, b16[i2], v2);
         return 0;
     }
 
     if (i3 != 0 && i4 != 0 && b16[i3] != b16[i4])
     {
-        fprintf(stderr, "[CameraBoost::InsertBuff]: [%d]=%02x, [%d]=%02x\n", i3, b16[i3], i4, b16[i4]);
+        dbg_printf("[%d]=%02x, [%d]=%02x", i3, b16[i3], i4, b16[i4]);
         mBuffersFree.push(mCurrentBuffer);
         //return 2;
         return 0;
@@ -160,7 +169,7 @@ int CameraBoost::InsertBuff(uchar *buffer, int bufferSize, ushort v1, int i1, us
 
 void CameraBoost::ResetDevice()
 {
-    fprintf(stderr, "[CameraBoost::ResetDevice]: catched\n");
+    dbg_printf("catched");
     resetDeviceNeeded = false;
     for(LibUsbChunkedBulkTransfer &transfer: mTransfer)
     {
@@ -172,7 +181,7 @@ void CameraBoost::ResetDevice()
 
 void CameraBoost::releaseAsyncXfer()
 {
-    fprintf(stderr, "[CameraBoost::releaseAsyncXfer]\n");
+    dbg_printf("catched");
     for(LibUsbChunkedBulkTransfer &transfer: mTransfer)
     {
         transfer.cancel();
@@ -189,12 +198,15 @@ int CameraBoost::ReadBuff(uchar* buffer, uint size, uint timeout)
     if (imageBuffer == nullptr)
     {
         imageBuffer = find_pointer_address(mCCameraBase, 0x600, buffer);
+        if (imageBuffer == nullptr)
+        {
+            err_printf("cannot find image buffer");
+            abort();
+        }
         realImageBuffer = buffer;
-        assert(("[CirBuf::ReadBuff]: cannot find image buffer", imageBuffer != nullptr));
     }
 
     uchar *p = get(); // TODO timeout
-    //fprintf(stderr, "[CirBuf::ReadBuff]: %d %d %p\n", *(short*)&p[0x00000000 + 2], *(short*)&p[0x006242f0 + 12], buffer);
 
     *imageBuffer = p;
 

@@ -1,3 +1,18 @@
+/*
+    Copyright (C) 2020 by Pawel Soja <kernel32.pl@gmail.com>
+    FPS Meter
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+*/
 #include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -10,22 +25,6 @@
 
 #include "ASICamera2Headers.h"
 #include "cameraboost.h"
-
-
-void make_fake_buffer(void *dst)
-{
-    unsigned char *p = reinterpret_cast<unsigned char*>(dst);
-    static int index = 1;
-    p[0x00000000 + 0]  = 0x7e;
-    p[0x00000000 + 1]  = 0x5a;
-    *(short*)&p[0x00000000 + 2]  = index;
-
-    *(short*)&p[0x006242f0 + 12] = index;
-    p[0x006242f0 + 14] = 0xf0;
-    p[0x006242f0 + 15] = 0x3c;
-
-    ++index;
-}
 
 bool gBoostCameraEnabled = true;
 
@@ -40,32 +39,25 @@ static CameraBoost *getCameraBoost(int iCameraID = gActiveCameraID)
     std::lock_guard<std::mutex> lock(gBoostCameraDataMutex);
     if (iCameraID == -1)
     {
-        fprintf(stderr, "[getCameraBoost]: invalid iCameraID!\n");
-        return nullptr;
+        err_printf("invalid iCameraID!");
+        abort();
     }
-    //fprintf(stderr, "[getBoostCameraData]: iCameraID %d\n", iCameraID);
+    // dbg_printf("iCameraID %d", iCameraID);
     return &gCameraBoost[iCameraID];
-}
-
-static CameraBoost *& getCameraBoost(CCameraBase *ccameraBase)
-{
-    //std::lock_guard<std::mutex> lock(gBoostCameraDataMutex);
-    //fprintf(stderr, "[getBoostCameraData]: CCameraBase %p\n", ccameraBase);
-    return gCameraBoost_CCameraBase[ccameraBase];
 }
 
 static CameraBoost *& getCameraBoost(CCameraFX3 *ccameraFX3)
 {
     //std::lock_guard<std::mutex> lock(gBoostCameraDataMutex);
     CCameraBase *ccameraBase = static_cast<CCameraBase*>(ccameraFX3);
-    //fprintf(stderr, "[getBoostCameraData]: CCameraFX3 %p\n", ccameraFX3);
+    // dbg_printf("CCameraFX3 %p", ccameraFX3);
     return gCameraBoost_CCameraBase[ccameraBase];
 }
 
 static CameraBoost *& getCameraBoost(CirBuf *cirBuf)
 {
     //std::lock_guard<std::mutex> lock(gBoostCameraDataMutex);
-    //fprintf(stderr, "[getBoostCameraData]: CirBuf %p\n", cirBuf);
+    // dbg_printf("CirBuf %p", cirBuf);
     return gCameraBoost_CirBuf[cirBuf];
 }
 
@@ -73,10 +65,10 @@ extern "C"
 {
 
 // #1
-int __real_ASIOpenCamera(int iCameraID);
-int __wrap_ASIOpenCamera(int iCameraID)
+ASI_ERROR_CODE __real_ASIOpenCamera(int iCameraID);
+ASI_ERROR_CODE ASIOpenCamera(int iCameraID)
 {
-    fprintf(stderr, "[ASIOpenCamera]: grab CameraID %d\n", iCameraID);
+    dbg_printf("grab CameraID %d", iCameraID);
     gActiveCameraID = iCameraID;
     getCameraBoost()->mCameraID = iCameraID;
     return __real_ASIOpenCamera(iCameraID);
@@ -86,7 +78,7 @@ int __wrap_ASIOpenCamera(int iCameraID)
 void __real__ZN11CCameraBase12InitVariableEv(CCameraBase * ccameraBase);
 void __wrap__ZN11CCameraBase12InitVariableEv(CCameraBase * ccameraBase)
 {
-    fprintf(stderr, "[CCameraBase::InitVariable]: grab CCameraBase %p\n", ccameraBase);
+    dbg_printf("grab CCameraBase %p", ccameraBase);
     CameraBoost *cameraBoost = getCameraBoost();
     cameraBoost->mCCameraBase = ccameraBase;
     gCameraBoost_CCameraBase[ccameraBase] = cameraBoost;
@@ -98,7 +90,7 @@ int __real_libusb_open(libusb_device *dev, libusb_device_handle **devh);
 int __wrap_libusb_open(libusb_device *dev, libusb_device_handle **devh)
 {
     int rc = __real_libusb_open(dev, devh);
-    fprintf(stderr, "[libusb_open]: grab libusb_device_handle %p\n", *devh);
+    dbg_printf("grab libusb_device_handle %p", *devh);
     getCameraBoost()->mDeviceHandle = *devh;
     return rc;
 }
@@ -183,11 +175,25 @@ ASICAMERA_API  ASI_ERROR_CODE ASIGetVideoDataPointer(int iCameraID, unsigned cha
     if (p == nullptr)
         return ASI_ERROR_TIMEOUT;
 
-    //fprintf(stderr, "[ASIGetVideoDataPointer]: buffer size %d\n", data->cameraBoost.bufferSize);
+    // dbg_printf("buffer size %u", uint(cameraBoost->bufferSize()));
     ASIGetVideoData(iCameraID, p, cameraBoost->bufferSize(), iWaitms);
     *pBuffer = p;
     
     return ASI_SUCCESS;
 }
+
+#ifndef NDEBUG
+void * __real_memcpy ( void * destination, const void * source, size_t num) __attribute__((weak));
+void * __real_memcpy ( void * destination, const void * source, size_t num);
+void * __wrap_memcpy ( void * destination, const void * source, size_t num)
+{
+    if (source != destination)
+    {
+        if (num >= 1024*1024)
+            dbg_printf("Big copy detected: %u Bytes", uint(num));
+    }
+    return __real_memcpy(destination, source, num);
+}
+#endif
 
 }
