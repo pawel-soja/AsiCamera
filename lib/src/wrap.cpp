@@ -68,9 +68,12 @@ extern "C"
 ASI_ERROR_CODE __real_ASIOpenCamera(int iCameraID);
 ASI_ERROR_CODE ASIOpenCamera(int iCameraID)
 {
-    dbg_printf("grab CameraID %d", iCameraID);
-    gActiveCameraID = iCameraID;
-    getCameraBoost()->mCameraID = iCameraID;
+    if (gBoostCameraEnabled)
+    {
+        dbg_printf("grab CameraID %d", iCameraID);
+        gActiveCameraID = iCameraID;
+        getCameraBoost()->mCameraID = iCameraID;
+    }
     return __real_ASIOpenCamera(iCameraID);
 }
 
@@ -78,10 +81,13 @@ ASI_ERROR_CODE ASIOpenCamera(int iCameraID)
 void __real__ZN11CCameraBase12InitVariableEv(CCameraBase * ccameraBase);
 void __wrap__ZN11CCameraBase12InitVariableEv(CCameraBase * ccameraBase)
 {
-    dbg_printf("grab CCameraBase %p", ccameraBase);
-    CameraBoost *cameraBoost = getCameraBoost();
-    cameraBoost->mCCameraBase = ccameraBase;
-    gCameraBoost_CCameraBase[ccameraBase] = cameraBoost;
+    if (gBoostCameraEnabled)
+    {
+        dbg_printf("grab CCameraBase %p", ccameraBase);
+        CameraBoost *cameraBoost = getCameraBoost();
+        cameraBoost->mCCameraBase = ccameraBase;
+        gCameraBoost_CCameraBase[ccameraBase] = cameraBoost;
+    }
     __real__ZN11CCameraBase12InitVariableEv(ccameraBase);
 }
 
@@ -90,8 +96,19 @@ int __real_libusb_open(libusb_device *dev, libusb_device_handle **devh);
 int __wrap_libusb_open(libusb_device *dev, libusb_device_handle **devh)
 {
     int rc = __real_libusb_open(dev, devh);
-    dbg_printf("grab libusb_device_handle %p", *devh);
-    getCameraBoost()->mDeviceHandle = *devh;
+    if (gBoostCameraEnabled)
+    {
+        if (gActiveCameraID != -1)
+        {
+            dbg_printf("grab libusb_device_handle %p", *devh);
+            getCameraBoost()->mDeviceHandle = *devh;
+        }
+        else
+        {
+            dbg_printf("grab libusb_device_handle %p, skipping", *devh);
+        }
+    }
+
     return rc;
 }
 
@@ -99,10 +116,13 @@ int __wrap_libusb_open(libusb_device *dev, libusb_device_handle **devh)
 void __real__ZN6CirBufC1El(CirBuf *cirBuf, long size);
 void __wrap__ZN6CirBufC1El(CirBuf *cirBuf, long size)
 {
-    CameraBoost *cameraBoost = getCameraBoost();
-    cameraBoost->mCirBuf = cirBuf;
-    gCameraBoost_CirBuf[cirBuf] = cameraBoost;
-    gActiveCameraID = -1; // done
+    if (gBoostCameraEnabled)
+    {
+        CameraBoost *cameraBoost = getCameraBoost();
+        cameraBoost->mCirBuf = cirBuf;
+        gCameraBoost_CirBuf[cirBuf] = cameraBoost;
+        gActiveCameraID = -1; // done
+    }
 
     __real__ZN6CirBufC1El(cirBuf, size);
 }
@@ -112,9 +132,8 @@ int __real__ZN10CCameraFX311ResetDeviceEv(CCameraFX3 *ccameraFX3);
 int __wrap__ZN10CCameraFX311ResetDeviceEv(CCameraFX3 *ccameraFX3)
 {
     if (gBoostCameraEnabled)
-    {
         getCameraBoost(ccameraFX3)->ResetDevice();
-    }
+
     return __real__ZN10CCameraFX311ResetDeviceEv(ccameraFX3);
 }
 
@@ -133,7 +152,7 @@ void __real__ZN10CCameraFX314startAsyncXferEjjPiPbi(CCameraFX3 *ccameraFX3, uint
 void __wrap__ZN10CCameraFX314startAsyncXferEjjPiPbi(CCameraFX3 *ccameraFX3, uint timeout1, uint timeout2, int *bytesRead, bool *stop, int size)
 {
     if (!gBoostCameraEnabled)
-        __real__ZN10CCameraFX314startAsyncXferEjjPiPbi(ccameraFX3, timeout1, timeout2, bytesRead, stop, size);
+        return __real__ZN10CCameraFX314startAsyncXferEjjPiPbi(ccameraFX3, timeout1, timeout2, bytesRead, stop, size);
 
     getCameraBoost(ccameraFX3)->startAsyncXfer(timeout1, timeout2, bytesRead, stop, size);
 }
@@ -169,6 +188,9 @@ void __wrap__ZN10CCameraFX316releaseAsyncXferEv(CCameraFX3 * ccameraFX3)
 
 ASICAMERA_API  ASI_ERROR_CODE ASIGetVideoDataPointer(int iCameraID, unsigned char** pBuffer, int iWaitms)
 {
+    if (!gBoostCameraEnabled)
+        return ASI_ERROR_INVALID_MODE;
+
     CameraBoost *cameraBoost = getCameraBoost(iCameraID);
 
     unsigned char * p = cameraBoost->peek();
