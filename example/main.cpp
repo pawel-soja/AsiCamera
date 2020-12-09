@@ -14,9 +14,6 @@
 
 extern bool g_bDebugPrint;
 
-
-extern "C" ASICAMERA_API  ASI_ERROR_CODE ASIGetVideoDataPointer(int iCameraID, unsigned char** pBuffer, int iWaitms);
-
 int main(int argc, char *argv[])
 {
     //g_bDebugPrint = true;
@@ -32,10 +29,8 @@ int main(int argc, char *argv[])
     int gain = 100;
 
     ASIOpenCamera(0);
-    //return 0 ;
-    ASIInitCamera(0);
 
-        
+    ASIInitCamera(0);
 
     for(int i=1; i<(argc-1); i += 2)
     {
@@ -60,7 +55,6 @@ int main(int argc, char *argv[])
     ASISetControlValue(0, ASI_HIGH_SPEED_MODE,   highSpeedMode, ASI_FALSE);
     ASISetControlValue(0, ASI_BANDWIDTHOVERLOAD, bandWidth,     ASI_FALSE);
     ASISetControlValue(0, ASI_GAIN,              gain,          ASI_FALSE);
-    
     
 
     std::vector<unsigned char> buffer(1024*1024*6*2, 0);
