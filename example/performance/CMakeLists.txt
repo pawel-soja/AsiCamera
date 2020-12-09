@@ -9,7 +9,16 @@ add_executable(AsiCameraPerformance
     lib/asicamerainfo.cpp
 )
 include_directories(lib/)
-#add_subdirectory (lib)
 
-link_directories(${CMAKE_BINARY_DIR}/lib/x64/)
+IF (CMAKE_SYSTEM_PROCESSOR MATCHES "armv+")
+    set(ASIARCH "armv6")
+ELSEIF (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+    set(ASIARCH "armv8")
+ELSEIF(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+    set(ASIARCH "x64")
+ELSEIF(CMAKE_SYSTEM_PROCESSOR MATCHES "i[3-6]86")
+    set(ASIARCH "x86")
+ENDIF ()
+
+link_directories(${CMAKE_BINARY_DIR}/lib/${ASIARCH}/)
 target_link_libraries(AsiCameraPerformance ASICamera2Boost)
