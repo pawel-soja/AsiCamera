@@ -16,12 +16,13 @@
 #pragma once
 
 #include <vector>
-#include "queue.h"
 #include <atomic>
+#include <deque>
+
 #include <libusb-cpp/libusb.h>
 
+#include "queue.h"
 #include "stypes.h"
-
 
 #ifdef NDEBUG
 # define dbg_printf(...)
@@ -40,8 +41,8 @@ class CameraBoost
 public:
     enum // constants
     {
-        Buffers = 8,                         // TODO initial count of buffers
-        Transfers = 3,                       // TODO limit to maximum possible transfers
+        Transfers = 3,   // TODO limit to maximum possible transfers
+        InitialBuffers = Transfers + 1,
         MaximumTransferChunkSize = 1024*1024 // 
     };
 
@@ -51,6 +52,10 @@ public:
 
     uchar *get();
     uchar *peek();
+
+public:
+    bool grow();
+    void initialBuffers();
 
 public: // reimplement
     void initAsyncXfer(int bufferSize, int transferCount, int chunkSize, uchar endpoint, uchar *buffer);
@@ -63,7 +68,8 @@ public: // reimplement
     int InsertBuff(uchar *buffer, int i1, ushort v1, int i2, ushort v2, int a5, int a6, int a7);
 
 protected:
-    std::vector<uchar> mBuffer[Buffers];
+    std::deque<std::vector<uchar>> mBuffer;
+    std::mutex mBufferMutex;
     
     Queue<uchar*> mBuffersFree;
     Queue<uchar*> mBuffersReady;

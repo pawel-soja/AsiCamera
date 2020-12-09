@@ -56,6 +56,32 @@ uchar *CameraBoost::peek()
     return mBuffersReady.peek(1000); // TODO timeout
 }
 
+bool CameraBoost::grow()
+{
+    std::vector<uchar> newBuffer(mBufferSize, 0);
+    if (newBuffer.size() != size_t(mBufferSize))
+    {
+        err_printf("allocation fail");
+        return false;
+    }
+    mBuffersFree.push(newBuffer.data());
+
+    std::lock_guard<std::mutex> lock(mBufferMutex);
+    mBuffer.push_back(std::move(newBuffer));
+    return true;
+}
+
+void CameraBoost::initialBuffers()
+{
+#ifdef CAMERABOOST_LAZYLOAD
+    std::thread([this](){
+#endif
+        while (mBuffer.size() < InitialBuffers && grow());
+#ifdef CAMERABOOST_LAZYLOAD
+    }).detach();
+#endif
+}
+
 // reimplement
 
 void CameraBoost::initAsyncXfer(int bufferSize, int transferCount, int chunkSize, uchar endpoint, uchar *buffer)
@@ -75,18 +101,7 @@ void CameraBoost::initAsyncXfer(int bufferSize, int transferCount, int chunkSize
     mBuffersFree.clear();
 
     // Lazy load
-    std::thread([this, bufferSize](){
-        for (std::vector<uchar> &buffer: mBuffer)
-        {
-            buffer.resize(bufferSize);
-            if (buffer.size() != size_t(bufferSize))
-            {
-                err_printf("allocation fail");
-                break;
-            }
-            mBuffersFree.push(buffer.data());
-        }
-    }).detach();
+    initialBuffers();
 
     for (LibUsbChunkedBulkTransfer &transfer: mTransfer)
         transfer = LibUsbChunkedBulkTransfer(mDeviceHandle, endpoint, NULL, bufferSize, MaximumTransferChunkSize);
@@ -123,12 +138,11 @@ void CameraBoost::startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, b
         }
     }
 
-    uchar *buffer = mBuffersFree.pop(100);
-    if (buffer == nullptr)
+    uchar *buffer;
+    while ((buffer = mBuffersFree.pop(2)) == nullptr)
     {
-        dbg_printf("buffer timeout, exiting...");
-        //abort();
-        return;
+        if (grow() == false)
+            return;
     }
     transfer.setBuffer(buffer).submit();
 
