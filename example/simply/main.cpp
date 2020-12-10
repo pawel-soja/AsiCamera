@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
     ASIStartVideoCapture(iCameraID);
 
     DeltaTime deltaTime;
-    for(int i=0; i<40; ++i)
+    for(int i=0; i<50; ++i)
     {
         ASI_ERROR_CODE rc;
 #ifdef CAMERABOOST_DISABLE
