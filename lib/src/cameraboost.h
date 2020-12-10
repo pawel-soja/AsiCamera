@@ -80,7 +80,7 @@ protected:
 
     LibUsbChunkedBulkTransfer  mTransfer[Transfers];
     int mTransferIndex = 0;
-
+    uint mInvalidDataFrames = 0;
     size_t mBufferSize;
 
 public: // taken from the library

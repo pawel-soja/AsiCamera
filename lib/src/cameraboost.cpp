@@ -105,18 +105,22 @@ void CameraBoost::initAsyncXfer(int bufferSize, int transferCount, int chunkSize
     // Lazy load
     initialBuffers();
 
+    dbg_printf("create chunked bulk transfer, bufferSize: %d, chunkSize: %d", bufferSize, MaximumTransferChunkSize);
     for (LibUsbChunkedBulkTransfer &transfer: mTransfer)
         transfer = LibUsbChunkedBulkTransfer(mDeviceHandle, endpoint, NULL, bufferSize, MaximumTransferChunkSize);
 
     usbBuffer = find_pointer_address(mCCameraBase, 0x600, buffer);
     realUsbBuffer = buffer;
+    mInvalidDataFrames = 0;
 }
 
 void CameraBoost::startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, bool *stop, int size)
 {
     if (resetDeviceNeeded)
+    {
+        mInvalidDataFrames = 0;
         return;
-
+    }
     LibUsbChunkedBulkTransfer &transfer = mTransfer[mTransferIndex];
 
     // at the beginning, transfer has null buffer
@@ -167,6 +171,11 @@ int CameraBoost::InsertBuff(uchar *buffer, int bufferSize, ushort v1, int i1, us
     {
         mBuffersFree.push(mCurrentBuffer);
         dbg_printf("[%d]=%02x (%02x), [%d]=%02x (%02x)", i1, b16[i1], v1, i2, b16[i2], v2);
+        if (++mInvalidDataFrames >= 2)
+        {
+            dbg_printf("invalid frame tokens, reset device needed");
+            resetDeviceNeeded = true;
+        }
         return 0;
     }
 
@@ -174,6 +183,11 @@ int CameraBoost::InsertBuff(uchar *buffer, int bufferSize, ushort v1, int i1, us
     {
         dbg_printf("[%d]=%02x, [%d]=%02x", i3, b16[i3], i4, b16[i4]);
         mBuffersFree.push(mCurrentBuffer);
+        if (++mInvalidDataFrames >= 2)
+        {
+            dbg_printf("invalid frame index, reset device needed");
+            resetDeviceNeeded = true;
+        }
         //return 2;
         return 0;
     }
