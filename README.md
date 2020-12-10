@@ -81,6 +81,7 @@ Camera Found!
 Set 'Exposure' to 10000
 Set 'HighSpeedMode' to 1
 Set 'Gain' to 100
+Set 'Format' to 8bit
 
 Camera Options
 |------------------------------------------------------------------------------------------------------------------------------|
