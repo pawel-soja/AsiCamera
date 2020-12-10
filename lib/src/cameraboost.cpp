@@ -20,6 +20,8 @@
 #include <cassert>
 #include "ASICamera2Headers.h"
 
+bool gCameraBoostDebug = false;
+bool gCameraBoostEnable = true;
 
 static void **find_pointer_address(void *container, size_t size, const void *pointer)
 {

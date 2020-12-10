@@ -24,14 +24,15 @@
 #include "queue.h"
 #include "stypes.h"
 
-#ifdef NDEBUG
-# define dbg_printf(...)
-#else
-# define dbg_printf(f_, ...) fprintf(stderr, ("[%s]: " f_ "\n"), __FUNCTION__, ## __VA_ARGS__)
-#endif
+extern bool gCameraBoostDebug;
+extern bool gCameraBoostEnable;
+
+# define dbg_printf(f_, ...) \
+do { \
+    if (gCameraBoostDebug) fprintf(stderr, ("[%s]: " f_ "\n"), __FUNCTION__, ## __VA_ARGS__); \
+} while(0)
 
 # define err_printf(f_, ...) fprintf(stderr, ("[%s]: " f_ "\n"), __FUNCTION__, ## __VA_ARGS__)
-
 
 class CCameraFX3;
 class CirBuf;

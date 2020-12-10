@@ -26,8 +26,6 @@
 #include "ASICamera2Headers.h"
 #include "cameraboost.h"
 
-bool gCameraBoostEnable = true;
-
 static std::mutex gBoostCameraDataMutex;
 static std::unordered_map<int,          CameraBoost>  gCameraBoost;
 static std::unordered_map<CCameraBase*, CameraBoost*> gCameraBoost_CCameraBase;

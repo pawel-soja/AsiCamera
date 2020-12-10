@@ -65,6 +65,7 @@ void setArguments(AsiCamera &camera, int argc, char *argv[])
 
 extern bool g_bDebugPrint;       // libASICamera2
 extern bool gCameraBoostEnable;  // libASICamera2Boost
+extern bool gCameraBoostDebug;   // libASICamera2Boost debug mode
 
 //#define BOOSTCAMERA_DISABLE
 
