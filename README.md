@@ -2,7 +2,7 @@
 
 A wrapper for libASICamera2 library that improves performance at higher FPS.
 This library wrapper is under development.
-The library will be prepared for work with [INDI Library](https://github.com/indilib/indi) and [INDI 3rd Party Drivers](https://github.com/pawel-soja/indi-3rdparty)
+The library will be prepared for work with [INDI Library](https://github.com/indilib/indi) and [INDI 3rd Party Drivers](https://github.com/indilib/indi-3rdparty)
 
 # What is the problem in the original library?
 When running the library on Raspberry PI 4, the problem becomes reaching the declared maximum FPS, e.g. for the ASI178 camera.
@@ -19,10 +19,13 @@ Just swap the libraries!
 If you want to get rid of unnecessary data copying from buffer to buffer, be sure to use ASIGetVideoDataPointer function.
 With this function, you will get an address to the frame buffer. The data is available until the next function call. You can edit the data in the buffer for image transformations.
 
+# Additional Features
+The library offers additional features that increase performance and facilitate debugging. To use, you have to manipulate the source of the program that is using the library.
+- ASIGetVideoDataPointer - this function gives direct access to frame data. Copying avoided
+- gCameraBoostEnable - global bool variable - restore the original behavior of the library
+- gCameraBoostDebug - global bool variable - print additional information useful for debugging to stderr
+
 # Building
-
-TODO
-
 
 ## Install Pre-requisites
 
@@ -44,7 +47,7 @@ cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release ~/Projects/AsiCamer
 make -j4
 ```
 
-## Test your camera
+# Test your camera
 
 ## Example - performance
 Sample program that tests all connected cameras for different BandWidth values.
@@ -100,22 +103,22 @@ Find best bandwidth
 |---------------------------------------------------------------------------------------------------------------------------------|
 | BW [%] |                                            Frame duration [ms]                                                         |
 |---------------------------------------------------------------------------------------------------------------------------------|
-|   40%  |  309    48    37    41    41    44    40    41    42    44    40    43    40    43    41    42    40    44    41    43 |
-|   45%  |   22    38    38    37    37    37    36    36    38    39    38    37    37    37    38    35    36    38    37    39 |
-|   50%  |   18    35    33    32    36    32    38    36    27    34    33    32    32    34    34    32    33    36    35    33 |
-|   55%  |   14    32    31    31    31    28    29    33    28    31    33    29    32    29    29    32    30    29    32    29 |
-|   60%  |   14    29    30    25    31    29    24    28    27    31    28    26    28    28    28    29    29    27    27    28 |
-|   65%  |    8    27    25    28    27    24    25    27    25    27    26    26    25    26    25    27    24    25    26    26 |
-|   70%  |    9    26    23    25    23    24    21    24    25    24    25    22    24    24    24    24    23    23    24    23 |
-|   75%  |    9    23    22    22    21    24    22    23    23    22    22    22    23    22    22    23    22    22    22    21 |
-|   80%  |    7    24    21    21    20    22    21    21    20    22    18    21    20    23    20    21    21    21    20    23 |
-|   85%  |    6    18    22    18    19    20    20    20    19    20    21    20    19    20    20    19    21    19    20    19 |
-|   90%  |    3    21    14    19    18    19    17    21    22    16    17    19    16    21    17    19    21    15    19    18 |
-|   95%  |    5    17    19    15    18    17    17    18    20    18    17    18    18    14    20    19    18    18    17    16 |
-|  100%  |    2    17    17    16    15    17    17    18    17    16    15    17    16    18    17    16    15    16    20    14 |
+|   40%  |  303    48    36    42    41    42    41    42    41    42    41    42    42    42    41    42    41    43    40    42 |
+|   45%  |   23    37    37    37    37    37    37    36    37    37    37    38    37    37    37    37    37    37    37    37 |
+|   50%  |   20    34    34    33    35    33    32    34    34    33    34    33    33    34    33    33    33    34    33    33 |
+|   55%  |   17    30    31    31    30    31    30    30    31    30    30    30    30    30    31    30    30    30    30    31 |
+|   60%  |   12    28    28    28    27    28    27    28    28    28    28    28    27    28    28    28    27    28    28    28 |
+|   65%  |   10    26    26    25    26    25    25    26    25    26    26    26    26    26    26    25    26    26    26    26 |
+|   70%  |   11    24    23    24    24    24    23    24    24    25    24    24    23    25    24    24    24    24    25    23 |
+|   75%  |    8    22    24    23    22    22    22    22    23    23    22    22    24    21    22    22    23    22    22    23 |
+|   80%  |    4    20    21    21    20    22    21    20    21    22    21    20    21    20    21    20    22    20    22    20 |
+|   85%  |    2    19    20    20    20    20    18    20    19    20    20    20    19    21    17    20    19    20    19    21 |
+|   90%  |    1    19    18    19    19    18    19    21    17    19    19    17    20    18    18    19    19    18    18    19 |
+|   95%  |    3    17    18    17    18    18    17    18    18    17    18    18    17    19    18    18    18    17    16    19 |
+|  100%  |    1    17    16    17    17    17    16    18    16    16    17    17    16    16    17    16    17    18    16    16 |
 |---------------------------------------------------------------------------------------------------------------------------------|
 
-Best bandwidth is 100%, it has 63.1 FPS
+Best bandwidth is 100%, it has 60.1 FPS
 ```
 The table shows the waiting time for the frame for the given BandWidth value. Based on these values, the FPS value is calculated.
 
