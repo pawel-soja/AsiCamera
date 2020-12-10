@@ -53,7 +53,7 @@ make -j4
 Sample program that tests all connected cameras for different BandWidth values.
 In the arguments of the program, you can specify camera options, For example:
 ```
-$ ./example/performance/AsiCameraPerformance Exposure 10000 HighSpeedMode 1 Gain 100
+$ ./example/performance/AsiCameraPerformance Exposure 10000 HighSpeedMode 1 Gain 100 Format 8bit
 Camera Found!
 
 |-----------------------------------------------------------|
@@ -127,7 +127,7 @@ A simplified program that measures time frames for specific parameters.
 If you used the original libASICamera2 library, nothing will surprise you here.
 The program is very useful for debugging a library.
 ```
-$ ./example/simply/AsiCameraSimply Exposure 10000 HighSpeedMode 1 Gain 100
+$ ./example/simply/AsiCameraSimply Exposure 10000 HighSpeedMode 1 Gain 100 Format 8bit
 [ASIOpenCamera]: grab CameraID 0
 [CameraBoost]: created
 [__wrap_libusb_open]: grab libusb_device_handle 0x557a57792090

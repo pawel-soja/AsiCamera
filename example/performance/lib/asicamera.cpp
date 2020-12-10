@@ -134,6 +134,24 @@ int AsiCamera::errorCode() const
     const AsiCameraPrivate *d = d_func();
     return d->errorCode;
 }
+
+bool AsiCamera::setImageFormat(ImageFormat imageFormat)
+{
+    AsiCameraPrivate *d = d_func();
+    int w, h, bin;
+    ASI_IMG_TYPE imgType;
+
+    d->errorCode = ASIGetROIFormat(d->cameraId, &w, &h, &bin, &imgType);
+    if (d->errorCode != ASI_SUCCESS)
+        return false;
+
+    d->errorCode = ASISetROIFormat(d->cameraId, w, h, bin, static_cast<ASI_IMG_TYPE>(imageFormat));
+    if (d->errorCode != ASI_SUCCESS)
+        return false;
+
+    return true;
+}
+
 #if 0
 AsiCameraControl AsiCamera::control(const std::string &name)
 {

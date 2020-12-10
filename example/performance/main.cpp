@@ -38,28 +38,34 @@ void setArguments(AsiCamera &camera, int argc, char *argv[])
 {
     for(int i=1; i<(argc-1); i += 2)
     {
-        auto control = camera[std::string(argv[i])];
-        if (!control.isValid())
+        bool ok = false;
+        if (!strcmp(argv[i], "Format"))
         {
-            printf("Unknown option: %s\n", argv[i]);
-            continue;
-        }
-
-        if (!strcmp(argv[i+1], "auto"))
-        {
-            if (control.setAutoControl() == false)
-                printf("Cannot set '%s' to auto mode\n", argv[i]);
-        }
-        else
-        {
-            if (control.set(atoi(argv[i+1])) == false)
+            if (!strcmp(argv[i+1], "8bit"))
+                ok = camera.setImageFormat(AsiCamera::ImageFormat8Bit);
+            else if (!strcmp(argv[i+1], "16bit"))
+                ok = camera.setImageFormat(AsiCamera::ImageFormat16Bit);
+            else
             {
-                printf("Cannot set '%s' to '%s'\n", argv[i], argv[i+1]);
+                printf("Unknown format: %s\n", argv[i+1]);
                 continue;
             }
         }
+        else
+        {
+            auto control = camera[std::string(argv[i])];
+            if (!control.isValid())
+            {
+                printf("Unknown option: %s\n", argv[i]);
+                continue;
+            }
 
-        printf("Set '%s' to %s\n", argv[i], argv[i+1]);
+            if (!strcmp(argv[i+1], "auto"))
+                ok = control.setAutoControl();
+            else
+                ok = control.set(atoi(argv[i+1]));
+        }
+        printf("%s '%s' to %s\n", ok ? "Set" : "Cannot set", argv[i], argv[i+1]);
     }   
 }
 
@@ -67,13 +73,13 @@ extern bool g_bDebugPrint;       // libASICamera2
 extern bool gCameraBoostEnable;  // libASICamera2Boost
 extern bool gCameraBoostDebug;   // libASICamera2Boost debug mode
 
-//#define BOOSTCAMERA_DISABLE
+//#define CAMERABOOST_DISABLE
 
 int main(int argc, char *argv[])
 {
     //g_bDebugPrint = true;
 
-#ifdef BOOSTCAMERA_DISABLE
+#ifdef CAMERABOOST_DISABLE
     gCameraBoostEnable = false;
 #endif
 
@@ -164,7 +170,7 @@ int main(int argc, char *argv[])
             for(int i=0; i<20; ++i)
             {
                 DeltaTime deltaTime;
-#ifdef BOOSTCAMERA_DISABLE
+#ifdef CAMERABOOST_DISABLE
                 bool ok = camera.getVideoData(buffer, bufferSize);
 #else
                 bool ok = camera.getVideoDataPointer(&buffer);

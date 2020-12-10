@@ -29,6 +29,14 @@ class AsiCameraPrivate;
 class AsiCamera
 {
 public:
+    enum ImageFormat
+    {
+        ImageFormat8Bit = 0,
+        ImageFormat24Bit,
+        ImageFormat16Bit,
+        ImageFormatY8
+    };
+public:
     AsiCamera();
     virtual ~AsiCamera();
 
@@ -44,6 +52,11 @@ public:
 
     int errorCode() const;
 
+public:
+    bool setImageFormat(ImageFormat imageFormat);
+
+
+//ASIGetROIFormat
 public:
     bool startVideoCapture();
     void stopVideoCapture();

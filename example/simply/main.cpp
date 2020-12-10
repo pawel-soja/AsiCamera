@@ -15,6 +15,26 @@
 #include <ASICamera2Boost.h>
 #include "deltatime.h"
 
+static bool setImageFormat(int iCameraID, ASI_IMG_TYPE type)
+{
+    int w, h, bin, rc;
+    ASI_IMG_TYPE orgType;
+
+    rc = ASIGetROIFormat(0, &w, &h, &bin, &orgType);
+    if (rc != ASI_SUCCESS)
+    {
+        printf("ASIGetROIFormat error: %d\n", rc);
+        return false;
+    }
+    rc = ASISetROIFormat(0, w, h, bin, type);
+    if (rc != ASI_SUCCESS)
+    {
+        printf("ASISetROIFormat error: %d\n", rc);
+        return false;
+    }
+    return true;
+}
+
 static void setArguments(int iCameraID, int argc, char *argv[], int *exposure = nullptr)
 {
     std::map<std::string, ASI_CONTROL_TYPE> options;
@@ -25,46 +45,57 @@ static void setArguments(int iCameraID, int argc, char *argv[], int *exposure = 
 
     for(int i=1; i<(argc-1); i += 2)
     {
-        auto option = options.find(argv[i]);
-        if (option == options.end())
-        {
-            printf("Unknown option: %s\n", argv[i]);
-            continue;
-        }
-        
-        if (!strcmp(argv[i+1], "auto"))
-        {
-            printf("Auto option is not supported\n");
-            continue;
-        }
-        else
-        {
-            int rc = ASISetControlValue(iCameraID, option->second, atoi(argv[i+1]), ASI_FALSE);
-            if (rc != ASI_SUCCESS)
-            {
-                printf("Cannot set '%s' to '%s'\n", argv[i], argv[i+1]);
-                continue;
-            }
-        }
-
+        bool ok = false;
         if (!strcmp(argv[i], "Exposure") && exposure)
             *exposure = atoi(argv[i+1]);
 
-        printf("Set '%s' to %s\n", argv[i], argv[i+1]);        
+        if (!strcmp(argv[i], "Format"))
+        {
+            if (!strcmp(argv[i+1], "8bit"))
+                ok = setImageFormat(iCameraID, ASI_IMG_RAW8);
+            else if (!strcmp(argv[i+1], "16bit"))
+                ok = setImageFormat(iCameraID, ASI_IMG_RAW16);
+            else
+            {
+                printf("Unknown format: %s\n", argv[i+1]);
+                continue;
+            }
+        }
+        else
+        {
+            auto option = options.find(argv[i]);
+            if (option == options.end())
+            {
+                printf("Unknown option: %s\n", argv[i]);
+                continue;
+            }
+
+            if (!strcmp(argv[i+1], "auto"))
+            {
+                printf("Auto option is not supported\n");
+                ok = false;
+            }
+            else
+            {
+                ok = (ASISetControlValue(iCameraID, option->second, atoi(argv[i+1]), ASI_FALSE) == ASI_SUCCESS);
+            }
+        }
+
+        printf("%s '%s' to %s\n", ok ? "Set" : "Cannot set", argv[i], argv[i+1]);
     }
 }
 
 extern bool g_bDebugPrint;       // libASICamera2
 extern bool gCameraBoostEnable;  // libASICamera2Boost
 extern bool gCameraBoostDebug;   // libASICamera2Boost debug mode
-//#define BOOSTCAMERA_DISABLE
+//#define CAMERABOOST_DISABLE
 
 int main(int argc, char *argv[])
 {
     //g_bDebugPrint = true;
     gCameraBoostDebug = true;
 
-#ifdef BOOSTCAMERA_DISABLE
+#ifdef CAMERABOOST_DISABLE
     gCameraBoostEnable = false;
 #endif
 
@@ -101,7 +132,7 @@ int main(int argc, char *argv[])
     for(int i=0; i<20; ++i)
     {
         ASI_ERROR_CODE rc;
-#ifdef BOOSTCAMERA_DISABLE
+#ifdef CAMERABOOST_DISABLE
         rc = ASIGetVideoData(
             0,
             ptr,
