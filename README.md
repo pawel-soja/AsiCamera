@@ -32,7 +32,7 @@ The library offers additional features that increase performance and facilitate 
 On Debian/Ubuntu:
 
 ```
-sudo apt-get -y install ...TODO...
+sudo apt-get -y install git cmake libusb-1.0-0-dev
 ```
 
 ## Get the code and build
