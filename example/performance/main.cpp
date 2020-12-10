@@ -170,7 +170,8 @@ int main(int argc, char *argv[])
                 bool ok = camera.getVideoDataPointer(&buffer);
 #endif
                 double diff = deltaTime.stop();
-                totalTime += diff;
+                if (i != 0) // do not include the first frame
+                    totalTime += diff;
                 printf("%5.0f ", diff * 1000);
                 fflush(stdout);
             }
@@ -183,7 +184,7 @@ int main(int argc, char *argv[])
         }
         printf("|---------------------------------------------------------------------------------------------------------------------------------|\n");
 
-        printf("\nBest bandwidth is %d%%, it has %.1f FPS\n", bestBandWidth, 20 / bestTime);
+        printf("\nBest bandwidth is %d%%, it has %.1f FPS\n", bestBandWidth, 19 / bestTime);
         
         camera.stopVideoCapture();
         camera.close();
