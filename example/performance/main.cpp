@@ -64,7 +64,7 @@ void setArguments(AsiCamera &camera, int argc, char *argv[])
 }
 
 extern bool g_bDebugPrint;       // libASICamera2
-extern bool gBoostCameraEnabled; // libASICamera2Boost
+extern bool gCameraBoostEnable;  // libASICamera2Boost
 
 //#define BOOSTCAMERA_DISABLE
 
@@ -73,11 +73,10 @@ int main(int argc, char *argv[])
     //g_bDebugPrint = true;
 
 #ifdef BOOSTCAMERA_DISABLE
-    gBoostCameraEnabled = false;
+    gCameraBoostEnable = false;
 #endif
 
     RedirectToFile stdErr(STDERR_FILENO, "debug.log");
-    //gBoostCameraEnabled = false;
     
     auto cameraInfoList = AsiCameraInfo::availableCameras();
     for(auto &cameraInfo: cameraInfoList)
