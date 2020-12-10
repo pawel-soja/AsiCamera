@@ -16,8 +16,6 @@
 
 #include "redirecttofile.h"
 
-extern bool g_bDebugPrint;
-
 using std::to_string;
 std::string to_string(const std::string &str)
 {
@@ -65,14 +63,21 @@ void setArguments(AsiCamera &camera, int argc, char *argv[])
     }   
 }
 
-extern bool gBoostCameraEnabled;
+extern bool g_bDebugPrint;       // libASICamera2
+extern bool gBoostCameraEnabled; // libASICamera2Boost
+
+//#define BOOSTCAMERA_DISABLE
 
 int main(int argc, char *argv[])
 {
     //g_bDebugPrint = true;
 
-    RedirectToFile stdErr(STDERR_FILENO, "debug.log");
+#ifdef BOOSTCAMERA_DISABLE
     gBoostCameraEnabled = false;
+#endif
+
+    RedirectToFile stdErr(STDERR_FILENO, "debug.log");
+    //gBoostCameraEnabled = false;
     
     auto cameraInfoList = AsiCameraInfo::availableCameras();
     for(auto &cameraInfo: cameraInfoList)
@@ -159,7 +164,7 @@ int main(int argc, char *argv[])
             for(int i=0; i<20; ++i)
             {
                 DeltaTime deltaTime;
-#if 1
+#ifdef BOOSTCAMERA_DISABLE
                 bool ok = camera.getVideoData(buffer, bufferSize);
 #else
                 bool ok = camera.getVideoDataPointer(&buffer);

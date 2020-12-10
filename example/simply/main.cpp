@@ -15,9 +15,6 @@
 #include <ASICamera2Boost.h>
 #include "deltatime.h"
 
-
-extern bool g_bDebugPrint;
-
 static void setArguments(int iCameraID, int argc, char *argv[], int *exposure = nullptr)
 {
     std::map<std::string, ASI_CONTROL_TYPE> options;
@@ -57,9 +54,18 @@ static void setArguments(int iCameraID, int argc, char *argv[], int *exposure = 
     }
 }
 
+extern bool g_bDebugPrint;       // libASICamera2
+extern bool gBoostCameraEnabled; // libASICamera2Boost
+
+//#define BOOSTCAMERA_DISABLE
+
 int main(int argc, char *argv[])
 {
     //g_bDebugPrint = true;
+
+#ifdef BOOSTCAMERA_DISABLE
+    gBoostCameraEnabled = false;
+#endif
 
     if (ASIGetNumOfConnectedCameras() == 0)
     {
@@ -88,13 +94,13 @@ int main(int argc, char *argv[])
     unsigned char *ptr = buffer.data();
     size_t size = buffer.size();
 
-
     ASIStartVideoCapture(iCameraID);
+
     DeltaTime deltaTime;
     for(int i=0; i<20; ++i)
     {
         ASI_ERROR_CODE rc;
-#if 0
+#ifdef BOOSTCAMERA_DISABLE
         rc = ASIGetVideoData(
             0,
             ptr,
