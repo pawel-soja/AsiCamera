@@ -136,6 +136,7 @@ $ ./example/simply/AsiCameraSimply Exposure 10000 HighSpeedMode 1 Gain 100 Forma
 Set 'Exposure' to 10000
 Set 'HighSpeedMode' to 1
 Set 'Gain' to 100
+Set 'Format' to 8bit
 [ResetDevice]: catched
 [initAsyncXfer]: device 0x557a57792090, endpoint 0x81, buffer size 6439680
 timeframe:   258ms, status: 0
