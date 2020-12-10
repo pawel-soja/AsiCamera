@@ -42,9 +42,9 @@ class CameraBoost
 public:
     enum // constants
     {
-        Transfers = 2,   // TODO limit to maximum possible transfers
+        Transfers = 3,   // TODO limit to maximum possible transfers
         InitialBuffers = Transfers + 1,
-        MaximumTransferChunkSize = 2*1024*1024 //
+        MaximumTransferChunkSize = 256*1024*1024 //
     };
 
 public:
