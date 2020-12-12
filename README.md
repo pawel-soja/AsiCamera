@@ -25,6 +25,7 @@ The library offers additional features that increase performance and facilitate 
 - gCameraBoostEnable - global bool variable - restore the original behavior of the library
 - gCameraBoostDebug - global bool variable - print additional information useful for debugging to stderr
 
+**Be sure to read the 'lib/include/ASICamera2Boost.h' file.**
 # Building
 
 ## Install Pre-requisites
