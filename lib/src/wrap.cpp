@@ -184,7 +184,7 @@ void __wrap__ZN10CCameraFX316releaseAsyncXferEv(CCameraFX3 * ccameraFX3)
     getCameraBoost(ccameraFX3)->releaseAsyncXfer();
 }
 
-ASICAMERA_API  ASI_ERROR_CODE ASIGetVideoDataPointer(int iCameraID, unsigned char** pBuffer, int iWaitms)
+ASICAMERA_API ASI_ERROR_CODE ASIGetVideoDataPointer(int iCameraID, unsigned char** pBuffer, int iWaitms)
 {
     if (!gCameraBoostEnable)
         return ASI_ERROR_INVALID_MODE;
@@ -200,6 +200,24 @@ ASICAMERA_API  ASI_ERROR_CODE ASIGetVideoDataPointer(int iCameraID, unsigned cha
     *pBuffer = p;
     
     return ASI_SUCCESS;
+}
+
+ASICAMERA_API ASI_ERROR_CODE ASISetMaxChunkSize(int iCameraID, unsigned int maxChunkSize)
+{
+    if (!gCameraBoostEnable)
+        return ASI_ERROR_INVALID_MODE;
+
+    CameraBoost *cameraBoost = getCameraBoost(iCameraID);
+    return cameraBoost->setMaxChunkSize(maxChunkSize) ? ASI_SUCCESS : ASI_ERROR_INVALID_SEQUENCE;
+}
+
+ASICAMERA_API ASI_ERROR_CODE ASISetChunkedTransfers(int iCameraID, unsigned int chunkedTransfers)
+{
+    if (!gCameraBoostEnable)
+        return ASI_ERROR_INVALID_MODE;
+
+    CameraBoost *cameraBoost = getCameraBoost(iCameraID);
+    return cameraBoost->setChunkedTransfers(chunkedTransfers) ? ASI_SUCCESS : ASI_ERROR_INVALID_SEQUENCE;
 }
 
 #ifndef NDEBUG
