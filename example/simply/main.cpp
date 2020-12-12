@@ -61,6 +61,14 @@ static void setArguments(int iCameraID, int argc, char *argv[], int *exposure = 
                 continue;
             }
         }
+        else if (!strcmp(argv[i], "MaxChunkSize"))
+        {
+            ok = (ASISetMaxChunkSize(iCameraID, atoi(argv[i+1])) == ASI_SUCCESS);
+        }
+        else if (!strcmp(argv[i], "ChunkedTransfers"))
+        {
+            ok = (ASISetChunkedTransfers(iCameraID, atoi(argv[i+1])) == ASI_SUCCESS);
+        }
         else
         {
             auto option = options.find(argv[i]);

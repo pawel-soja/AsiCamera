@@ -51,6 +51,14 @@ void setArguments(AsiCamera &camera, int argc, char *argv[])
                 continue;
             }
         }
+        else if (!strcmp(argv[i], "MaxChunkSize"))
+        {
+            ok = camera.setMaxChunkSize(atoi(argv[i+1]));
+        }
+        else if (!strcmp(argv[i], "ChunkedTransfers"))
+        {
+            ok = camera.setChunkedTransfers(atoi(argv[i+1]));
+        }
         else
         {
             auto control = camera[std::string(argv[i])];
