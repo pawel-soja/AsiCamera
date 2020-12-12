@@ -35,9 +35,52 @@ static void **find_pointer_address(void *container, size_t size, const void *poi
     return NULL;
 }
 
+#include <map>
+#include <fstream>
+#include <sstream>
+class ConfigFile
+{
+    std::map<std::string, std::string> values;
+public:
+    ConfigFile(const std::string &fileName)
+    {
+        std::ifstream fileStream(fileName);
+        std::string line;
+        while (std::getline(fileStream, line))
+        {
+            std::istringstream sline(line);
+            std::string key, value;
+            if (std::getline(sline, key, '=') && key[0] != '#' && std::getline(sline, value))
+                    values[key] = value;
+        }
+    }
+
+    std::string value(const std::string &key, const std::string &defaultValue = "") const
+    {
+        const auto value = values.find(key);
+        return value == values.end() ? defaultValue : value->second;
+    }
+
+    int value(const std::string &key, int defaultValue)
+    {
+        const auto value = values.find(key);
+        if (value == values.end())
+            return defaultValue;
+        try {
+            return std::stoi(value->second);
+        } catch (const std::exception&) {
+            return defaultValue;
+        }
+    }
+};
 CameraBoost::CameraBoost()
 {
-    dbg_printf("created");
+    dbg_printf("created, load default values or from '/etc/asicamera2boost.conf' file...");
+    ConfigFile configFile("/etc/asicamera2boost.conf");
+
+    mIsRunning = false;
+    setMaxChunkSize(configFile.value("max_chunk_size", 256*1024*1024));
+    setChunkedTransfers(configFile.value("chunked_transfers", 3));
 }
 
 size_t CameraBoost::bufferSize() const
@@ -75,10 +118,11 @@ bool CameraBoost::grow()
 
 void CameraBoost::initialBuffers()
 {
+    const uint initialBuffers = mChunkedTransfers + 1;
 #ifdef CAMERABOOST_LAZYLOAD
     std::thread([this](){
 #endif
-        while (mBuffer.size() < InitialBuffers && grow());
+        while (mBuffer.size() < initialBuffers && grow());
 #ifdef CAMERABOOST_LAZYLOAD
     }).detach();
 #endif
@@ -89,14 +133,15 @@ void CameraBoost::initialBuffers()
 void CameraBoost::initAsyncXfer(int bufferSize, int transferCount, int chunkSize, uchar endpoint, uchar *buffer)
 {
     dbg_printf("device %p, endpoint 0x%x, buffer size %d", mDeviceHandle, endpoint, bufferSize);
-    
+    mIsRunning = true;
+
     resetDeviceNeeded = false;
     mBufferSize = bufferSize;
 
     // extend buffer size - better damaged frame than retransmission
 #if 0
-    bufferSize  = (bufferSize + MaximumTransferChunkSize - 1) / MaximumTransferChunkSize;
-    bufferSize *= MaximumTransferChunkSize;
+    bufferSize  = (bufferSize + mMaxChunkSize - 1) / mMaxChunkSize;
+    bufferSize *= mMaxChunkSize;
 #endif
     mBuffersBusy.clear();
     mBuffersReady.clear();
@@ -105,9 +150,10 @@ void CameraBoost::initAsyncXfer(int bufferSize, int transferCount, int chunkSize
     // Lazy load
     initialBuffers();
 
-    dbg_printf("create chunked bulk transfer, bufferSize: %d, chunkSize: %d", bufferSize, MaximumTransferChunkSize);
+    dbg_printf("create chunked bulk transfer, bufferSize: %d, chunkSize: %d", bufferSize, mMaxChunkSize);
+    mTransfer.resize(mChunkedTransfers);
     for (LibUsbChunkedBulkTransfer &transfer: mTransfer)
-        transfer = LibUsbChunkedBulkTransfer(mDeviceHandle, endpoint, NULL, bufferSize, MaximumTransferChunkSize);
+        transfer = LibUsbChunkedBulkTransfer(mDeviceHandle, endpoint, NULL, bufferSize, mMaxChunkSize);
 
     usbBuffer = find_pointer_address(mCCameraBase, 0x600, buffer);
     realUsbBuffer = buffer;
@@ -121,7 +167,7 @@ void CameraBoost::startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, b
         mInvalidDataFrames = 0;
         return;
     }
-    LibUsbChunkedBulkTransfer &transfer = mTransfer[mTransferIndex];
+    LibUsbChunkedBulkTransfer &transfer = mTransfer[mChunkedTransferIndex];
 
     // at the beginning, transfer has null buffer
     mCurrentBuffer = reinterpret_cast<uchar*>(transfer.wait().buffer()); // TODO timeout
@@ -154,7 +200,7 @@ void CameraBoost::startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, b
 
     *bytesRead = size;
 
-    mTransferIndex = (mTransferIndex + 1) % Transfers;
+    mChunkedTransferIndex = (mChunkedTransferIndex + 1) % mChunkedTransfers;
 }
 
 int CameraBoost::InsertBuff(uchar *buffer, int bufferSize, ushort v1, int i1, ushort v2, int i2, int i3, int i4)
@@ -221,6 +267,7 @@ void CameraBoost::releaseAsyncXfer()
 
     *usbBuffer = realUsbBuffer;
     *imageBuffer = realImageBuffer;
+    mIsRunning = false;
 }
 
 int CameraBoost::ReadBuff(uchar* buffer, uint size, uint timeout)
@@ -241,4 +288,24 @@ int CameraBoost::ReadBuff(uchar* buffer, uint size, uint timeout)
     *imageBuffer = p;
 
     return 1;
+}
+
+bool CameraBoost::setMaxChunkSize(unsigned int value)
+{
+    if (mIsRunning)
+        return false;
+
+    mMaxChunkSize = value;
+    dbg_printf("max_chunk_size %d", mMaxChunkSize);
+    return true;
+}
+
+bool CameraBoost::setChunkedTransfers(unsigned int value)
+{
+    if (mIsRunning)
+        return false;
+
+    mChunkedTransfers = value;
+    dbg_printf("chunked_transfers %d", mChunkedTransfers);
+    return true;
 }

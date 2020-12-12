@@ -40,14 +40,6 @@ class CCameraBase;
 class CameraBoost
 {
 public:
-    enum // constants
-    {
-        Transfers = 3,   // TODO limit to maximum possible transfers
-        InitialBuffers = Transfers + 1,
-        MaximumTransferChunkSize = 256*1024*1024 //
-    };
-
-public:
     CameraBoost();
     size_t bufferSize() const;
 
@@ -68,6 +60,10 @@ public: // reimplement
     int ReadBuff(uchar* buffer, uint size, uint timeout);
     int InsertBuff(uchar *buffer, int i1, ushort v1, int i2, ushort v2, int a5, int a6, int a7);
 
+public: // export in wrap functions
+    bool setMaxChunkSize(unsigned int value);
+    bool setChunkedTransfers(unsigned int value);
+
 protected:
     std::deque<std::vector<uchar>> mBuffer;
     std::mutex mBufferMutex;
@@ -78,8 +74,14 @@ protected:
 
     uchar *mCurrentBuffer = nullptr;
 
-    LibUsbChunkedBulkTransfer  mTransfer[Transfers];
-    int mTransferIndex = 0;
+    std::vector<LibUsbChunkedBulkTransfer>  mTransfer;
+    int mChunkedTransferIndex = 0;
+
+    uint mMaxChunkSize;
+    uint mChunkedTransfers;
+
+    std::atomic<bool> mIsRunning;
+
     uint mInvalidDataFrames = 0;
     size_t mBufferSize;
 
