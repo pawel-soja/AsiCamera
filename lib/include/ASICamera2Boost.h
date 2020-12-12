@@ -50,9 +50,9 @@ ASICAMERA_API ASI_ERROR_CODE ASISetMaxChunkSize(int iCameraID, unsigned int maxC
  * In the case of high-speed cameras on non-real time systems, it is necessary to provide more active requests.
  * Too much can be limited by the system and can cause errors.
  *
- * In this library, the default value is 3.
+ * In this library, the default value is 4.
  * You can also set this value in the '/etc/asicamera2boost.conf' configuration file by typing:
- * chunked_transfers=3
+ * chunked_transfers=4
  *
  * The configuration file is loaded when calling the ASIInitCamera function.
  * The value can be modified by calling the ASISetChunkedTransfers function.

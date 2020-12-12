@@ -80,7 +80,7 @@ CameraBoost::CameraBoost()
 
     mIsRunning = false;
     setMaxChunkSize(configFile.value("max_chunk_size", 256*1024*1024));
-    setChunkedTransfers(configFile.value("chunked_transfers", 3));
+    setChunkedTransfers(configFile.value("chunked_transfers", 4));
 }
 
 size_t CameraBoost::bufferSize() const
