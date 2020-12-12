@@ -152,6 +152,18 @@ bool AsiCamera::setImageFormat(ImageFormat imageFormat)
     return true;
 }
 
+bool AsiCamera::setMaxChunkSize(uint maxChunkSize)
+{
+    AsiCameraPrivate *d = d_func();
+    return ASISetMaxChunkSize(d->cameraId, maxChunkSize) == ASI_SUCCESS;
+}
+
+bool AsiCamera::setChunkedTransfers(uint chunkedTransferCount)
+{
+    AsiCameraPrivate *d = d_func();
+    return ASISetChunkedTransfers(d->cameraId, chunkedTransferCount) == ASI_SUCCESS;
+}
+
 #if 0
 AsiCameraControl AsiCamera::control(const std::string &name)
 {

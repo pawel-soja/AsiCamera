@@ -55,8 +55,9 @@ public:
 public:
     bool setImageFormat(ImageFormat imageFormat);
 
+    bool setMaxChunkSize(uint maxChunkSize);
+    bool setChunkedTransfers(uint chunkedTransferCount);
 
-//ASIGetROIFormat
 public:
     bool startVideoCapture();
     void stopVideoCapture();
