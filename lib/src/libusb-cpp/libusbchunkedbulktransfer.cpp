@@ -90,7 +90,7 @@ public:
 
 
 LibUsbChunkedBulkTransfer::LibUsbChunkedBulkTransfer()
-    : d_ptr(new LibUsbChunkedBulkTransferPrivate(NULL, 0, NULL, 1, 1, 0))
+    : d_ptr(new LibUsbChunkedBulkTransferPrivate(NULL, 0, NULL, 0, 1, 0))
 {
 
 }
@@ -106,7 +106,7 @@ LibUsbChunkedBulkTransfer::~LibUsbChunkedBulkTransfer()
 }
 
 LibUsbChunkedBulkTransfer::LibUsbChunkedBulkTransfer(LibUsbChunkedBulkTransfer &&other)
-    : d_ptr(new LibUsbChunkedBulkTransferPrivate(NULL, 0, NULL, 1, 1, 0))
+    : d_ptr(new LibUsbChunkedBulkTransferPrivate(NULL, 0, NULL, 0, 1, 0))
 {
     std::swap(d_ptr, other.d_ptr);
 }
