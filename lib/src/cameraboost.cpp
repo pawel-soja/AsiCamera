@@ -158,6 +158,19 @@ void CameraBoost::initAsyncXfer(int bufferSize, int transferCount, int chunkSize
     usbBuffer = find_pointer_address(mCCameraBase, 0x600, buffer);
     realUsbBuffer = buffer;
     mInvalidDataFrames = 0;
+    mChunkedTransferIndex = -1;
+}
+
+bool CameraBoost::submitTransfer(LibUsbChunkedBulkTransfer &transfer, uint timeout)
+{
+    uchar *buffer;
+    while ((buffer = mBuffersFree.pop(2)) == nullptr)
+    {
+        if (grow() == false)
+            return false;
+    }
+    transfer.setBuffer(buffer).submit();
+    return true;
 }
 
 void CameraBoost::startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, bool *stop, int size)
@@ -167,12 +180,22 @@ void CameraBoost::startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, b
         mInvalidDataFrames = 0;
         return;
     }
-    LibUsbChunkedBulkTransfer &transfer = mTransfer[mChunkedTransferIndex];
 
     // I suggest at least a second because of the start of the first frame.
     uint timeout = std::max(timeout1, uint(1000)); // minimum second.
 
-    // at the beginning, transfer has null buffer
+    // is first call?
+    if (mChunkedTransferIndex < 0)
+    {
+        mChunkedTransferIndex = 0;
+        // Submit all transfers - required for long exposure.
+        for(auto &transfer: mTransfer)
+            if(submitTransfer(transfer, timeout) == false)
+                return;
+    }
+
+    LibUsbChunkedBulkTransfer &transfer = mTransfer[mChunkedTransferIndex];
+
     mCurrentBuffer = reinterpret_cast<uchar*>(transfer.wait(timeout).buffer());
 
     if (mCurrentBuffer != nullptr)
@@ -193,16 +216,10 @@ void CameraBoost::startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, b
         }
     }
 
-    uchar *buffer;
-    while ((buffer = mBuffersFree.pop(2)) == nullptr)
-    {
-        if (grow() == false)
-            return;
-    }
-    transfer.setBuffer(buffer).submit();
+    if(submitTransfer(transfer, timeout) == false)
+        return;
 
     *bytesRead = size;
-
     mChunkedTransferIndex = (mChunkedTransferIndex + 1) % mChunkedTransfers;
 }
 
@@ -249,13 +266,14 @@ int CameraBoost::InsertBuff(uchar *buffer, int bufferSize, ushort v1, int i1, us
 void CameraBoost::ResetDevice()
 {
     dbg_printf("catched");
-    resetDeviceNeeded = false;
     for(LibUsbChunkedBulkTransfer &transfer: mTransfer)
     {
         transfer.cancel();
         mBuffersFree.push(reinterpret_cast<uchar*>(transfer.buffer()));
         transfer.setBuffer(nullptr);
     }
+    mChunkedTransferIndex = -1;
+    resetDeviceNeeded = false;
 }
 
 void CameraBoost::releaseAsyncXfer()

@@ -64,6 +64,9 @@ public: // export in wrap functions
     bool setMaxChunkSize(unsigned int value);
     bool setChunkedTransfers(unsigned int value);
 
+private:
+    bool submitTransfer(LibUsbChunkedBulkTransfer &transfer, uint timeout);
+
 protected:
     std::deque<std::vector<uchar>> mBuffer;
     std::mutex mBufferMutex;
