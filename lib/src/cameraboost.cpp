@@ -88,17 +88,17 @@ size_t CameraBoost::bufferSize() const
     return mBufferSize;
 }
 
-uchar *CameraBoost::get()
+uchar *CameraBoost::get(uint timeout)
 {
-    uchar *buffer = mBuffersReady.pop(-1);  // take ready buffer, TODO timeout
+    uchar *buffer = mBuffersReady.pop(timeout);  // take ready buffer, TODO timeout
     mBuffersFree.push(mBuffersBusy.pop(0)); // move processed buffer to free buffer queue
     mBuffersBusy.push(buffer);              // add current buffer to busy queue
     return buffer;
 }
 
-uchar *CameraBoost::peek()
+uchar *CameraBoost::peek(uint timeout)
 {
-    return mBuffersReady.peek(1000); // TODO timeout
+    return mBuffersReady.peek(timeout);
 }
 
 bool CameraBoost::grow()
@@ -169,8 +169,11 @@ void CameraBoost::startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, b
     }
     LibUsbChunkedBulkTransfer &transfer = mTransfer[mChunkedTransferIndex];
 
+    // I suggest at least a second because of the start of the first frame.
+    uint timeout = std::max(timeout1, uint(1000)); // minimum second.
+
     // at the beginning, transfer has null buffer
-    mCurrentBuffer = reinterpret_cast<uchar*>(transfer.wait().buffer()); // TODO timeout
+    mCurrentBuffer = reinterpret_cast<uchar*>(transfer.wait(timeout).buffer());
 
     if (mCurrentBuffer != nullptr)
     {
@@ -283,7 +286,17 @@ int CameraBoost::ReadBuff(uchar* buffer, uint size, uint timeout)
         realImageBuffer = buffer;
     }
 
-    uchar *p = get(); // TODO timeout
+    // the timeout value comes from the user (iWaitms).
+    // ASIGetVideoData(int iCameraID, unsigned char* pBuffer, long lBuffSize, int iWaitms);
+    // quotation:
+    //    int iWaitms, this API will block and wait iWaitms to get one image.
+    //    the unit is ms -1 means wait forever. this value is recommend set to exposure*2+500ms
+    //
+    // this is not true. The camera is also limited to the maximum FPS.
+    // For example, for 32us exposure, the frame rate will not be several thousand.
+    // I suggest at least a second because of the start of the first frame.
+    timeout = std::max(timeout, uint(1000)); // minimum second.
+    uchar *p = get(timeout);
 
     *imageBuffer = p;
 

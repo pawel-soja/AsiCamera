@@ -191,7 +191,7 @@ ASICAMERA_API ASI_ERROR_CODE ASIGetVideoDataPointer(int iCameraID, unsigned char
 
     CameraBoost *cameraBoost = getCameraBoost(iCameraID);
 
-    unsigned char * p = cameraBoost->peek();
+    unsigned char * p = cameraBoost->peek(iWaitms);
     if (p == nullptr)
         return ASI_ERROR_TIMEOUT;
 

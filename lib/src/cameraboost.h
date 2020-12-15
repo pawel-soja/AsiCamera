@@ -43,8 +43,8 @@ public:
     CameraBoost();
     size_t bufferSize() const;
 
-    uchar *get();
-    uchar *peek();
+    uchar *get(uint timeout);
+    uchar *peek(uint timeout);
 
 public:
     bool grow();
