@@ -30,7 +30,14 @@ public:
     int actualLength;
     std::vector<libusb_transfer *> transfers;
     
-    LibUsbChunkedBulkTransferPrivate(libusb_device_handle *dev, uint8_t endpoint, void *buffer, size_t length, size_t chunk, uint timeout)
+    LibUsbChunkedBulkTransferPrivate(
+        libusb_device_handle *dev = nullptr,
+        uint8_t endpoint = 0x00,
+        void *buffer = nullptr,
+        size_t length = 0,
+        size_t chunk = 1,
+        uint timeout = 0
+    )
         : done(0)
         , pending(0)
         , completed(1)
@@ -88,7 +95,7 @@ public:
 
 
 LibUsbChunkedBulkTransfer::LibUsbChunkedBulkTransfer()
-    : d_ptr(new LibUsbChunkedBulkTransferPrivate(NULL, 0, NULL, 0, 1, 0))
+    : d_ptr(new LibUsbChunkedBulkTransferPrivate())
 {
 
 }
@@ -104,7 +111,7 @@ LibUsbChunkedBulkTransfer::~LibUsbChunkedBulkTransfer()
 }
 
 LibUsbChunkedBulkTransfer::LibUsbChunkedBulkTransfer(LibUsbChunkedBulkTransfer &&other)
-    : d_ptr(new LibUsbChunkedBulkTransferPrivate(NULL, 0, NULL, 0, 1, 0))
+    : d_ptr(new LibUsbChunkedBulkTransferPrivate())
 {
     std::swap(d_ptr, other.d_ptr);
 }
