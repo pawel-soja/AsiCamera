@@ -15,9 +15,9 @@
 */
 #pragma once
 
-#include <libusb-1.0/libusb.h>
 #include <memory>
 
+class libusb_device_handle;
 class LibUsbChunkedBulkTransferPrivate;
 class LibUsbChunkedBulkTransfer
 {
@@ -45,7 +45,6 @@ public:
     LibUsbChunkedBulkTransfer& setDevice(libusb_device_handle *dev);
 
 protected:
-    //LibUsbChunkedBulkTransferPrivate *d_ptr;
     std::unique_ptr<LibUsbChunkedBulkTransferPrivate> d_ptr;
 
     LibUsbChunkedBulkTransferPrivate *d_func() const;

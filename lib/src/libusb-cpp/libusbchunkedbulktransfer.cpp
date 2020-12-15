@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <vector>
+#include <chrono>
 
 class LibUsbChunkedBulkTransferPrivate
 {
@@ -151,9 +152,6 @@ LibUsbChunkedBulkTransfer& LibUsbChunkedBulkTransfer::cancel()
     wait();    
     return *this;
 }
-
-#include <chrono>
-
 
 LibUsbChunkedBulkTransfer& LibUsbChunkedBulkTransfer::wait(uint timeout)
 {
