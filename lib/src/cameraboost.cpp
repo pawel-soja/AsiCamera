@@ -153,7 +153,6 @@ void CameraBoost::initAsyncXfer(int bufferSize, int transferCount, int chunkSize
     usbBuffer = find_pointer_address(mCCameraBase, 0x600, buffer);
     realUsbBuffer = buffer;
     mInvalidDataFrames = 0;
-    mChunkedTransferIndex = -1;
 
     dbg_printf("create chunked bulk transfer, bufferSize: %d, chunkSize: %d", bufferSize, mMaxChunkSize);
     mTransfer.resize(mChunkedTransfers);
@@ -161,10 +160,15 @@ void CameraBoost::initAsyncXfer(int bufferSize, int transferCount, int chunkSize
     for (auto &transfer: mTransfer)
     {
         transfer = LibUsbChunkedBulkTransfer(mDeviceHandle, endpoint, NULL, bufferSize, mMaxChunkSize);
+#ifndef CAMERABOOST_DISABLE_PRETRANSFER
         submitTransfer(transfer, -1);
+#endif
     }
-
+#ifndef CAMERABOOST_DISABLE_PRETRANSFER
     mChunkedTransferIndex = 0;
+#else
+    mChunkedTransferIndex = -1;
+#endif
 }
 
 bool CameraBoost::submitTransfer(LibUsbChunkedBulkTransfer &transfer, uint timeout)
