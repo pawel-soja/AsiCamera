@@ -79,8 +79,8 @@ CameraBoost::CameraBoost()
     ConfigFile configFile("/etc/asicamera2boost.conf");
 
     mIsRunning = false;
-    setMaxChunkSize(configFile.value("max_chunk_size", 256*1024*1024));
-    setChunkedTransfers(configFile.value("chunked_transfers", 4));
+    setMaxChunkSize(configFile.value("max_chunk_size", DefaultChunkSize));
+    setChunkedTransfers(configFile.value("chunked_transfers", DefaultChunkedTransfers));
 }
 
 size_t CameraBoost::bufferSize() const
@@ -329,6 +329,16 @@ int CameraBoost::ReadBuff(uchar* buffer, uint size, uint timeout)
     *imageBuffer = p;
 
     return 1;
+}
+
+unsigned int CameraBoost::getMaxChunkSize() const
+{
+    return mMaxChunkSize;
+}
+
+unsigned int CameraBoost::getChunkedTransfers() const
+{
+    return mChunkedTransfers;
 }
 
 bool CameraBoost::setMaxChunkSize(unsigned int value)

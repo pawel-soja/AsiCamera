@@ -40,6 +40,11 @@ class CCameraBase;
 class CameraBoost
 {
 public:
+    enum {
+        DefaultChunkSize = 256 * 1024 * 1024,
+        DefaultChunkedTransfers = 4
+    };
+public:
     CameraBoost();
     size_t bufferSize() const;
 
@@ -59,6 +64,9 @@ public: // reimplement
 
     int ReadBuff(uchar* buffer, uint size, uint timeout);
     int InsertBuff(uchar *buffer, int i1, ushort v1, int i2, ushort v2, int a5, int a6, int a7);
+
+    unsigned int getMaxChunkSize() const;
+    unsigned int getChunkedTransfers() const;
 
 public: // export in wrap functions
     bool setMaxChunkSize(unsigned int value);
