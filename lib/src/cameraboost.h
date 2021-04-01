@@ -41,8 +41,8 @@ class CameraBoost
 {
 public:
     enum {
-        DefaultChunkSize = 256 * 1024 * 1024,
-        DefaultChunkedTransfers = 4
+        DefaultChunkSize = 128 * 1024 * 1024,
+        DefaultChunkedTransfers = 2
     };
 public:
     CameraBoost();

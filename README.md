@@ -105,10 +105,11 @@ Camera Options
 | HardwareBin              | 0      | 0      | 1          | 0        | no   | Is hardware bin2:0->No 1->Yes                    |
 | HighSpeedMode            | 1      | 0      | 1          | 0        | no   | Is high speed mode:0->No 1->Yes                  |
 | Temperature              | 266    | -500   | 1000       | 20       | no   | Sensor temperature(degrees Celsius)              |
-| MaxChunkSize             | 256    | 1      | 256        | 256      | no   | Size limit of a single USB transfer(MB)          |
-| ChunkedTransfers         | 4      | 1      | 8          | 4        | no   | Number of chunked transfers                      |
 | CameraBoostDebug         | 0      | 0      | 1          | 0        | no   | Enable debug mode for Boost                      |
 | CameraDebug              | 0      | 0      | 1          | 0        | no   | Enable debug mode for ASICamera2                 |
+| MaxChunkSize             | 128    | 1      | 256        | 128      | no   | Size limit of a single USB transfer(MB)          |
+| ChunkedTransfers         | 2      | 1      | 8          | 2        | no   | Number of chunked transfers                      |
+| USBMemory                | 512    | 0      | 4096       | 512      | no   | /sys/module/usbcore/parameters/usbfs_memory_mb   |
 |------------------------------------------------------------------------------------------------------------------------------|
 
 Find best bandwidth
