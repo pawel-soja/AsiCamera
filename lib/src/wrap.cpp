@@ -22,6 +22,7 @@
 #include <mutex>
 #include <unordered_map>
 #include <atomic>
+#include <fstream>
 
 #include "ASICamera2Headers.h"
 #include "cameraboost.h"
@@ -230,8 +231,11 @@ ASICAMERA_API ASI_ERROR_CODE ASIGetNumOfControls(int iCameraID, int * piNumberOf
         return ret;
 
     if (piNumberOfControls)
+    {
         *piNumberOfControls += 4;
-
+        if(std::ifstream("/sys/module/usbcore/parameters/usbfs_memory_mb").good())
+            *piNumberOfControls += 1;
+    }
     return ret;
 }
 
@@ -246,26 +250,6 @@ ASICAMERA_API ASI_ERROR_CODE ASIGetControlCaps(int iCameraID, int iControlIndex,
     switch(iControlIndex - numberOfControls)
     {
     case 0:
-        strcpy(pControlCaps->Name, "MaxChunkSize");
-        strcpy(pControlCaps->Description, "Size limit of a single USB transfer(MB)");
-        pControlCaps->MaxValue = 256;
-        pControlCaps->MinValue =   1;
-        pControlCaps->DefaultValue = CameraBoost::DefaultChunkSize / 1024 / 1024;
-        pControlCaps->IsAutoSupported = ASI_FALSE;
-        pControlCaps->IsWritable = ASI_TRUE;
-        pControlCaps->ControlType = ASI_CONTROL_TYPE(128);
-        return ASI_SUCCESS;
-    case 1:
-        strcpy(pControlCaps->Name, "ChunkedTransfers");
-        strcpy(pControlCaps->Description, "Number of chunked transfers");
-        pControlCaps->MaxValue = 8;
-        pControlCaps->MinValue =   1;
-        pControlCaps->DefaultValue = CameraBoost::DefaultChunkedTransfers;
-        pControlCaps->IsAutoSupported = ASI_FALSE;
-        pControlCaps->IsWritable = ASI_TRUE;
-        pControlCaps->ControlType = ASI_CONTROL_TYPE(129);
-        return ASI_SUCCESS;
-    case 2:
         strcpy(pControlCaps->Name, "CameraBoostDebug");
         strcpy(pControlCaps->Description, "Enable debug mode for Boost");
         pControlCaps->MaxValue = 1;
@@ -273,9 +257,9 @@ ASICAMERA_API ASI_ERROR_CODE ASIGetControlCaps(int iCameraID, int iControlIndex,
         pControlCaps->DefaultValue = 0;
         pControlCaps->IsAutoSupported = ASI_FALSE;
         pControlCaps->IsWritable = ASI_TRUE;
-        pControlCaps->ControlType = ASI_CONTROL_TYPE(130);
+        pControlCaps->ControlType = ASI_CONTROL_TYPE(128);
         return ASI_SUCCESS;
-    case 3:
+    case 1:
         strcpy(pControlCaps->Name, "CameraDebug");
         strcpy(pControlCaps->Description, "Enable debug mode for ASICamera2");
         pControlCaps->MaxValue = 1;
@@ -283,8 +267,41 @@ ASICAMERA_API ASI_ERROR_CODE ASIGetControlCaps(int iCameraID, int iControlIndex,
         pControlCaps->DefaultValue = 0;
         pControlCaps->IsAutoSupported = ASI_FALSE;
         pControlCaps->IsWritable = ASI_TRUE;
+        pControlCaps->ControlType = ASI_CONTROL_TYPE(129);
+        return ASI_SUCCESS;
+    case 2:
+        strcpy(pControlCaps->Name, "MaxChunkSize");
+        strcpy(pControlCaps->Description, "Size limit of a single USB transfer(MB)");
+        pControlCaps->MaxValue = 256;
+        pControlCaps->MinValue =   1;
+        pControlCaps->DefaultValue = CameraBoost::DefaultChunkSize / 1024 / 1024;
+        pControlCaps->IsAutoSupported = ASI_FALSE;
+        pControlCaps->IsWritable = ASI_TRUE;
+        pControlCaps->ControlType = ASI_CONTROL_TYPE(130);
+        return ASI_SUCCESS;
+    case 3:
+        strcpy(pControlCaps->Name, "ChunkedTransfers");
+        strcpy(pControlCaps->Description, "Number of chunked transfers");
+        pControlCaps->MaxValue = 8;
+        pControlCaps->MinValue =   1;
+        pControlCaps->DefaultValue = CameraBoost::DefaultChunkedTransfers;
+        pControlCaps->IsAutoSupported = ASI_FALSE;
+        pControlCaps->IsWritable = ASI_TRUE;
         pControlCaps->ControlType = ASI_CONTROL_TYPE(131);
         return ASI_SUCCESS;
+    case 4: {
+        std::ifstream file("/sys/module/usbcore/parameters/usbfs_memory_mb");
+        strcpy(pControlCaps->Name, "USBMemory");
+        strcpy(pControlCaps->Description, "/sys/module/usbcore/parameters/usbfs_memory_mb");
+        pControlCaps->MaxValue = 4096;
+        pControlCaps->MinValue = 0;
+        //pControlCaps->DefaultValue = 0;
+        file >> pControlCaps->DefaultValue;
+        pControlCaps->IsAutoSupported = ASI_FALSE;
+        pControlCaps->IsWritable = ASI_TRUE;
+        pControlCaps->ControlType = ASI_CONTROL_TYPE(132);
+        return ASI_SUCCESS;
+    }
     }
 
     return __real_ASIGetControlCaps(iCameraID, iControlIndex, pControlCaps);
@@ -298,25 +315,28 @@ ASICAMERA_API ASI_ERROR_CODE ASIGetControlValue(int  iCameraID, ASI_CONTROL_TYPE
     switch (int(ControlType))
     {
     case 128:
-        if (plValue) *plValue = cameraBoost->getMaxChunkSize() / 1024 / 1024;
-        if (pbAuto) *pbAuto = ASI_FALSE;
-        return ASI_SUCCESS;
-
-    case 129:
-        if (plValue) *plValue = cameraBoost->getChunkedTransfers();
-        if (pbAuto) *pbAuto = ASI_FALSE;
-        return ASI_SUCCESS;
-
-    case 130:
         if (plValue) *plValue = gCameraBoostDebug;
         if (pbAuto) *pbAuto = ASI_FALSE;
         return ASI_SUCCESS;
 
-    case 131:
+    case 129:
         if (plValue) *plValue = g_bDebugPrint;
         if (pbAuto) *pbAuto = ASI_FALSE;
         return ASI_SUCCESS;
 
+    case 130:
+        if (plValue) *plValue = cameraBoost->getMaxChunkSize() / 1024 / 1024;
+        if (pbAuto) *pbAuto = ASI_FALSE;
+        return ASI_SUCCESS;
+
+    case 131:
+        if (plValue) *plValue = cameraBoost->getChunkedTransfers();
+        if (pbAuto) *pbAuto = ASI_FALSE;
+        return ASI_SUCCESS;
+
+    case 132:
+        if (plValue) std::ifstream("/sys/module/usbcore/parameters/usbfs_memory_mb") >> *plValue;
+        if (pbAuto) *pbAuto = ASI_FALSE;
     default:;
     }
 
@@ -331,19 +351,28 @@ ASICAMERA_API ASI_ERROR_CODE ASISetControlValue(int  iCameraID, ASI_CONTROL_TYPE
     switch (int(ControlType))
     {
     case 128:
-        return cameraBoost->setMaxChunkSize(lValue) ? ASI_SUCCESS : ASI_ERROR_INVALID_SEQUENCE;
-
-    case 129:
-        return cameraBoost->setChunkedTransfers(lValue) ? ASI_SUCCESS : ASI_ERROR_INVALID_SEQUENCE;
-
-    case 130:
         gCameraBoostDebug = lValue;
         return ASI_SUCCESS;
 
-    case 131:
+    case 129:
         g_bDebugPrint = lValue;
         return ASI_SUCCESS;
 
+    case 130:
+        return cameraBoost->setMaxChunkSize(lValue) ? ASI_SUCCESS : ASI_ERROR_INVALID_SEQUENCE;
+
+    case 131:
+        return cameraBoost->setChunkedTransfers(lValue) ? ASI_SUCCESS : ASI_ERROR_INVALID_SEQUENCE;
+
+    case 132: {
+        std::ofstream file("/sys/module/usbcore/parameters/usbfs_memory_mb");
+        if (!file.good())
+            return ASI_ERROR_GENERAL_ERROR;
+
+        file << lValue;
+
+        return ASI_SUCCESS;
+    }
     default:;
     }
 
