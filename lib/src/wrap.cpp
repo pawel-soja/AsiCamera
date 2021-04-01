@@ -220,6 +220,136 @@ ASICAMERA_API ASI_ERROR_CODE ASISetChunkedTransfers(int iCameraID, unsigned int 
     return cameraBoost->setChunkedTransfers(chunkedTransfers) ? ASI_SUCCESS : ASI_ERROR_INVALID_SEQUENCE;
 }
 
+
+ASICAMERA_API ASI_ERROR_CODE __real_ASIGetNumOfControls(int iCameraID, int * piNumberOfControls);
+ASICAMERA_API ASI_ERROR_CODE ASIGetNumOfControls(int iCameraID, int * piNumberOfControls)
+{
+    ASI_ERROR_CODE ret = __real_ASIGetNumOfControls(iCameraID, piNumberOfControls);
+
+    if (ret != ASI_SUCCESS)
+        return ret;
+
+    if (piNumberOfControls)
+        *piNumberOfControls += 4;
+
+    return ret;
+}
+
+ASICAMERA_API ASI_ERROR_CODE __real_ASIGetControlCaps(int iCameraID, int iControlIndex, ASI_CONTROL_CAPS * pControlCaps);
+ASICAMERA_API ASI_ERROR_CODE ASIGetControlCaps(int iCameraID, int iControlIndex, ASI_CONTROL_CAPS * pControlCaps)
+{
+    int numberOfControls;
+    ASI_ERROR_CODE ret = __real_ASIGetNumOfControls(iCameraID, &numberOfControls);
+    if (ret != ASI_SUCCESS)
+        return ret;
+
+    switch(iControlIndex - numberOfControls)
+    {
+    case 0:
+        strcpy(pControlCaps->Name, "MaxChunkSize");
+        strcpy(pControlCaps->Description, "Size limit of a single USB transfer(MB)");
+        pControlCaps->MaxValue = 256;
+        pControlCaps->MinValue =   1;
+        pControlCaps->DefaultValue = CameraBoost::DefaultChunkSize / 1024 / 1024;
+        pControlCaps->IsAutoSupported = ASI_FALSE;
+        pControlCaps->IsWritable = ASI_TRUE;
+        pControlCaps->ControlType = ASI_CONTROL_TYPE(128);
+        return ASI_SUCCESS;
+    case 1:
+        strcpy(pControlCaps->Name, "ChunkedTransfers");
+        strcpy(pControlCaps->Description, "Number of chunked transfers");
+        pControlCaps->MaxValue = 8;
+        pControlCaps->MinValue =   1;
+        pControlCaps->DefaultValue = CameraBoost::DefaultChunkedTransfers;
+        pControlCaps->IsAutoSupported = ASI_FALSE;
+        pControlCaps->IsWritable = ASI_TRUE;
+        pControlCaps->ControlType = ASI_CONTROL_TYPE(129);
+        return ASI_SUCCESS;
+    case 2:
+        strcpy(pControlCaps->Name, "CameraBoostDebug");
+        strcpy(pControlCaps->Description, "Enable debug mode for Boost");
+        pControlCaps->MaxValue = 1;
+        pControlCaps->MinValue = 0;
+        pControlCaps->DefaultValue = 0;
+        pControlCaps->IsAutoSupported = ASI_FALSE;
+        pControlCaps->IsWritable = ASI_TRUE;
+        pControlCaps->ControlType = ASI_CONTROL_TYPE(130);
+        return ASI_SUCCESS;
+    case 3:
+        strcpy(pControlCaps->Name, "CameraDebug");
+        strcpy(pControlCaps->Description, "Enable debug mode for ASICamera2");
+        pControlCaps->MaxValue = 1;
+        pControlCaps->MinValue = 0;
+        pControlCaps->DefaultValue = 0;
+        pControlCaps->IsAutoSupported = ASI_FALSE;
+        pControlCaps->IsWritable = ASI_TRUE;
+        pControlCaps->ControlType = ASI_CONTROL_TYPE(131);
+        return ASI_SUCCESS;
+    }
+
+    return __real_ASIGetControlCaps(iCameraID, iControlIndex, pControlCaps);
+}
+
+ASICAMERA_API ASI_ERROR_CODE __real_ASIGetControlValue(int  iCameraID, ASI_CONTROL_TYPE  ControlType, long *plValue, ASI_BOOL *pbAuto);
+ASICAMERA_API ASI_ERROR_CODE ASIGetControlValue(int  iCameraID, ASI_CONTROL_TYPE  ControlType, long *plValue, ASI_BOOL *pbAuto)
+{
+    const CameraBoost *cameraBoost = getCameraBoost(iCameraID);
+
+    switch (int(ControlType))
+    {
+    case 128:
+        if (plValue) *plValue = cameraBoost->getMaxChunkSize() / 1024 / 1024;
+        if (pbAuto) *pbAuto = ASI_FALSE;
+        return ASI_SUCCESS;
+
+    case 129:
+        if (plValue) *plValue = cameraBoost->getChunkedTransfers();
+        if (pbAuto) *pbAuto = ASI_FALSE;
+        return ASI_SUCCESS;
+
+    case 130:
+        if (plValue) *plValue = gCameraBoostDebug;
+        if (pbAuto) *pbAuto = ASI_FALSE;
+        return ASI_SUCCESS;
+
+    case 131:
+        if (plValue) *plValue = g_bDebugPrint;
+        if (pbAuto) *pbAuto = ASI_FALSE;
+        return ASI_SUCCESS;
+
+    default:;
+    }
+
+    return __real_ASIGetControlValue(iCameraID, ControlType, plValue, pbAuto);
+}
+
+ASICAMERA_API ASI_ERROR_CODE __real_ASISetControlValue(int  iCameraID, ASI_CONTROL_TYPE  ControlType, long lValue, ASI_BOOL bAuto);
+ASICAMERA_API ASI_ERROR_CODE ASISetControlValue(int  iCameraID, ASI_CONTROL_TYPE  ControlType, long lValue, ASI_BOOL bAuto)
+{
+    CameraBoost *cameraBoost = getCameraBoost(iCameraID);
+
+    switch (int(ControlType))
+    {
+    case 128:
+        return cameraBoost->setMaxChunkSize(lValue) ? ASI_SUCCESS : ASI_ERROR_INVALID_SEQUENCE;
+
+    case 129:
+        return cameraBoost->setChunkedTransfers(lValue) ? ASI_SUCCESS : ASI_ERROR_INVALID_SEQUENCE;
+
+    case 130:
+        gCameraBoostDebug = lValue;
+        return ASI_SUCCESS;
+
+    case 131:
+        g_bDebugPrint = lValue;
+        return ASI_SUCCESS;
+
+    default:;
+    }
+
+    return __real_ASISetControlValue(iCameraID, ControlType, lValue, bAuto);
+}
+
 #ifndef NDEBUG
 void * __real_memcpy ( void * destination, const void * source, size_t num) __attribute__((weak));
 void * __real_memcpy ( void * destination, const void * source, size_t num);

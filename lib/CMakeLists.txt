@@ -15,7 +15,14 @@ ENDIF ()
 
 add_custom_command (
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libASICamera2_redefined.a
-    COMMAND objcopy --redefine-sym ASIOpenCamera=__real_ASIOpenCamera ${PROJECT_SOURCE_DIR}/../libasicamera2/lib/${ASIARCH}/libASICamera2.a ${CMAKE_CURRENT_BINARY_DIR}/libASICamera2_redefined.a
+    COMMAND objcopy
+        --redefine-sym ASIOpenCamera=__real_ASIOpenCamera
+        --redefine-sym ASIGetNumOfControls=__real_ASIGetNumOfControls
+        --redefine-sym ASIGetControlCaps=__real_ASIGetControlCaps
+        --redefine-sym ASIGetControlValue=__real_ASIGetControlValue
+        --redefine-sym ASISetControlValue=__real_ASISetControlValue
+
+        ${PROJECT_SOURCE_DIR}/../libasicamera2/lib/${ASIARCH}/libASICamera2.a ${CMAKE_CURRENT_BINARY_DIR}/libASICamera2_redefined.a
 )
 
 add_custom_target (generate-libASICamera2_redefined ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libASICamera2_redefined.a)
