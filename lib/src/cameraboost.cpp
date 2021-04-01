@@ -103,10 +103,13 @@ uchar *CameraBoost::peek(uint timeout)
 
 bool CameraBoost::grow()
 {
-    std::vector<uchar> newBuffer(mBufferSize, 0);
-    if (newBuffer.size() != size_t(mBufferSize))
+    std::vector<uchar> newBuffer;
+    try {
+        newBuffer.resize(mBufferSize);
+    }
+    catch (const std::bad_alloc&)
     {
-        err_printf("allocation fail");
+        err_printf("Out of memory");
         return false;
     }
     mBuffersFree.push(newBuffer.data());
