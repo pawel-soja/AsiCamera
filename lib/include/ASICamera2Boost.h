@@ -19,6 +19,9 @@ extern "C" {
  */
 ASICAMERA_API ASI_ERROR_CODE ASIGetVideoDataPointer(int iCameraID, unsigned char** pBuffer, int iWaitms);
 
+
+// DEPRECATED - Use Control Caps
+
 /**
  * @brief set the limit of a single USB transfer
  * In the original library, the value is 1MB (1*1024*1024). This means that if the frame size is 7MB, it is split into 7 transfers.

@@ -25,7 +25,6 @@ The library offers additional features that increase performance and facilitate 
 - gCameraBoostEnable - global bool variable - restore the original behavior of the library
 - gCameraBoostDebug - global bool variable - print additional information useful for debugging to stderr
 
-**Be sure to read the 'lib/include/ASICamera2Boost.h' file.**
 # Building
 
 ## Install Pre-requisites
@@ -61,6 +60,7 @@ In the arguments of the program, you can specify camera options, For example:
 ```
 $ ./example/performance/AsiCameraPerformance Exposure 10000 HighSpeedMode 1 Gain 100 Format 8bit
 Camera Found!
+ASIGetVideoDataPointer: found
 
 |-----------------------------------------------------------|
 |        Parameter       |     Value                        |
@@ -104,6 +104,10 @@ Camera Options
 | HardwareBin              | 0      | 0      | 1          | 0        | no   | Is hardware bin2:0->No 1->Yes                    |
 | HighSpeedMode            | 1      | 0      | 1          | 0        | no   | Is high speed mode:0->No 1->Yes                  |
 | Temperature              | 266    | -500   | 1000       | 20       | no   | Sensor temperature(degrees Celsius)              |
+| MaxChunkSize             | 256    | 1      | 256        | 256      | no   | Size limit of a single USB transfer(MB)          |
+| ChunkedTransfers         | 4      | 1      | 8          | 4        | no   | Number of chunked transfers                      |
+| CameraBoostDebug         | 0      | 0      | 1          | 0        | no   | Enable debug mode for Boost                      |
+| CameraDebug              | 0      | 0      | 1          | 0        | no   | Enable debug mode for ASICamera2                 |
 |------------------------------------------------------------------------------------------------------------------------------|
 
 Find best bandwidth
@@ -135,6 +139,7 @@ If you used the original libASICamera2 library, nothing will surprise you here.
 The program is very useful for debugging a library.
 ```
 $ ./example/simply/AsiCameraSimply Exposure 10000 HighSpeedMode 1 Gain 100 Format 8bit
+ASIGetVideoDataPointer: found
 [ASIOpenCamera]: grab CameraID 0
 [CameraBoost]: created
 [__wrap_libusb_open]: grab libusb_device_handle 0x557a57792090

@@ -51,14 +51,6 @@ void setArguments(AsiCamera &camera, int argc, char *argv[])
                 continue;
             }
         }
-        else if (!strcmp(argv[i], "MaxChunkSize"))
-        {
-            ok = camera.setMaxChunkSize(atoi(argv[i+1]));
-        }
-        else if (!strcmp(argv[i], "ChunkedTransfers"))
-        {
-            ok = camera.setChunkedTransfers(atoi(argv[i+1]));
-        }
         else
         {
             auto control = camera[std::string(argv[i])];
@@ -96,7 +88,9 @@ int main(int argc, char *argv[])
     auto cameraInfoList = AsiCameraInfo::availableCameras();
     for(auto &cameraInfo: cameraInfoList)
     {
-        printf("Camera Found!\n\n");
+        printf("Camera Found!\n");
+        printf("ASIGetVideoDataPointer: %s\n", AsiCamera::isGetVideoDataPointerAvailable() ? "found" : "not found");
+        printf("\n");
         printf("|-----------------------------------------------------------|\n");
         printf("|        Parameter       |     Value                        |\n");
         printf("|-----------------------------------------------------------|\n");
@@ -170,7 +164,6 @@ int main(int argc, char *argv[])
 
         for(int bandWidth = 40; bandWidth <= 100; bandWidth += 5)
         {
-
             printf("|  %3d%%  |", bandWidth);
         
             camera["BandWidth"] = bandWidth;
@@ -178,11 +171,10 @@ int main(int argc, char *argv[])
             for(int i=0; i<20; ++i)
             {
                 DeltaTime deltaTime;
-#ifdef CAMERABOOST_DISABLE
-                bool ok = camera.getVideoData(buffer, bufferSize);
-#else
-                bool ok = camera.getVideoDataPointer(&buffer);
-#endif
+                bool ok = AsiCamera::isGetVideoDataPointerAvailable()
+                        ? camera.getVideoDataPointer(&buffer)
+                        : camera.getVideoData(buffer, bufferSize);
+
                 double diff = deltaTime.stop();
                 if (i != 0) // do not include the first frame
                     totalTime += diff;

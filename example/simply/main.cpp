@@ -12,8 +12,10 @@
 
 #include <unistd.h>
 
-#include <ASICamera2Boost.h>
+#include <ASICamera2.h>
 #include "deltatime.h"
+
+#include <dlfcn.h>
 
 static bool setImageFormat(int iCameraID, ASI_IMG_TYPE type)
 {
@@ -61,14 +63,6 @@ static void setArguments(int iCameraID, int argc, char *argv[], int *exposure = 
                 continue;
             }
         }
-        else if (!strcmp(argv[i], "MaxChunkSize"))
-        {
-            ok = (ASISetMaxChunkSize(iCameraID, atoi(argv[i+1])) == ASI_SUCCESS);
-        }
-        else if (!strcmp(argv[i], "ChunkedTransfers"))
-        {
-            ok = (ASISetChunkedTransfers(iCameraID, atoi(argv[i+1])) == ASI_SUCCESS);
-        }
         else
         {
             auto option = options.find(argv[i]);
@@ -98,6 +92,18 @@ extern bool gCameraBoostEnable;  // libASICamera2Boost
 extern bool gCameraBoostDebug;   // libASICamera2Boost debug mode
 //#define CAMERABOOST_DISABLE
 
+ASICAMERA_API ASI_ERROR_CODE (*pASIGetVideoDataPointer)(int iCameraID, unsigned char** pBuffer, int iWaitms) = nullptr;
+
+static bool ASIGetVideoDataPointerInit()
+{
+    void * handle = dlopen(NULL, RTLD_LAZY);
+    pASIGetVideoDataPointer = reinterpret_cast<typeof(pASIGetVideoDataPointer)>(dlsym(handle, "ASIGetVideoDataPointer"));
+
+    fprintf(stderr, "ASIGetVideoDataPointer: %s\n", pASIGetVideoDataPointer == nullptr ? "not found" : "found");
+
+    return pASIGetVideoDataPointer != nullptr;
+}
+
 int main(int argc, char *argv[])
 {
     //g_bDebugPrint = true;
@@ -115,6 +121,7 @@ int main(int argc, char *argv[])
 
     int iCameraID = 0;
     
+    ASIGetVideoDataPointerInit();
     ASIOpenCamera(iCameraID);
     ASIInitCamera(iCameraID);
 
@@ -140,16 +147,19 @@ int main(int argc, char *argv[])
     for(int i=0; i<50; ++i)
     {
         ASI_ERROR_CODE rc;
-#ifdef CAMERABOOST_DISABLE
-        rc = ASIGetVideoData(
-            0,
-            ptr,
-            size,
-            exposure * 2 + 500
-        );
-#else
-        rc = ASIGetVideoDataPointer(iCameraID, &ptr, exposure * 2 + 500);
-#endif
+        if (pASIGetVideoDataPointer == nullptr)
+            rc = ASIGetVideoData(
+                iCameraID,
+                ptr,
+                size,
+                exposure * 2 + 500
+            );
+        else
+            rc = pASIGetVideoDataPointer(
+                iCameraID,
+                &ptr,
+                exposure * 2 + 500
+            );
 
         printf("timeframe: %5.0fms, status: %d\n", deltaTime.stop() * 1000, rc);
     }

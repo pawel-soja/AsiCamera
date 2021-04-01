@@ -55,15 +55,14 @@ public:
 public:
     bool setImageFormat(ImageFormat imageFormat);
 
-    bool setMaxChunkSize(uint maxChunkSize);
-    bool setChunkedTransfers(uint chunkedTransferCount);
-
 public:
     bool startVideoCapture();
     void stopVideoCapture();
 
     bool getVideoData(void *data, size_t size);
     bool getVideoDataPointer(void **data);
+
+    static bool isGetVideoDataPointerAvailable();
 
 public:
     AsiCameraControl control(const std::string &name) const;

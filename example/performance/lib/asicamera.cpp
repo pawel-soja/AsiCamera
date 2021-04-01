@@ -23,8 +23,20 @@
 
 #include "asicamerainfo.h"
 
+#include <dlfcn.h>
+
 #include "ASICamera2.h"
-#include "ASICamera2Boost.h"
+
+static ASICAMERA_API ASI_ERROR_CODE (*pASIGetVideoDataPointer)(int iCameraID, unsigned char** pBuffer, int iWaitms) = nullptr;
+
+static struct preload
+{
+    preload()
+    {
+        void * handle = dlopen(NULL, RTLD_LAZY);
+        pASIGetVideoDataPointer = reinterpret_cast<typeof(pASIGetVideoDataPointer)>(dlsym(handle, "ASIGetVideoDataPointer"));
+    }
+} preload;
 
 AsiCameraPrivate::AsiCameraPrivate()
 { }
@@ -152,18 +164,6 @@ bool AsiCamera::setImageFormat(ImageFormat imageFormat)
     return true;
 }
 
-bool AsiCamera::setMaxChunkSize(uint maxChunkSize)
-{
-    AsiCameraPrivate *d = d_func();
-    return ASISetMaxChunkSize(d->cameraId, maxChunkSize) == ASI_SUCCESS;
-}
-
-bool AsiCamera::setChunkedTransfers(uint chunkedTransferCount)
-{
-    AsiCameraPrivate *d = d_func();
-    return ASISetChunkedTransfers(d->cameraId, chunkedTransferCount) == ASI_SUCCESS;
-}
-
 #if 0
 AsiCameraControl AsiCamera::control(const std::string &name)
 {
@@ -271,6 +271,9 @@ bool AsiCamera::getVideoData(void *data, size_t size)
 
 bool AsiCamera::getVideoDataPointer(void **data)
 {
+    if (!isGetVideoDataPointerAvailable())
+        return false;
+
     AsiCameraPrivate *d = d_func();
 
     if (!isOpen())
@@ -285,13 +288,18 @@ bool AsiCamera::getVideoDataPointer(void **data)
         return false;
     }
     
-    d->errorCode = ASIGetVideoDataPointer(
+    d->errorCode = pASIGetVideoDataPointer(
         d->cameraId,
         reinterpret_cast<unsigned char**>(data),
         d->exposure * 2 + 500
     );
 
     return d->errorCode == ASI_SUCCESS;
+}
+
+bool AsiCamera::isGetVideoDataPointerAvailable()
+{
+    return pASIGetVideoDataPointer != nullptr;
 }
 
 AsiCameraPrivate * AsiCamera::d_func() const

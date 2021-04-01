@@ -18,4 +18,4 @@ ELSEIF(CMAKE_SYSTEM_PROCESSOR MATCHES "i[3-6]86")
 ENDIF ()
 
 link_directories(${CMAKE_BINARY_DIR}/lib/${ASIARCH}/)
-target_link_libraries(AsiCameraSimply ASICamera2Boost)
+target_link_libraries(AsiCameraSimply ASICamera2Boost ${CMAKE_DL_LIBS})
