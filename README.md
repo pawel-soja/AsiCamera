@@ -50,6 +50,11 @@ make -j4
 
 # Test your camera
 
+## INDI Library
+You can run with a preloaded library
+```
+LD_PRELOAD=~/Projects/build/AsiCamera/lib/libASICamera2Boost.so indiserver indi_asi_ccd
+```
 ## Example - performance
 Sample program that tests all connected cameras for different BandWidth values.
 In the arguments of the program, you can specify camera options, For example:
