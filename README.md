@@ -37,13 +37,13 @@ sudo apt-get -y install git cmake libusb-1.0-0-dev
 
 ## Get the code and build
 ```
-mkdir -p ~/Projects/build/AsiCamera-build
+mkdir -p ~/Projects/build/AsiCamera
 
 cd ~/Projects
 git clone https://github.com/pawel-soja/AsiCamera
 
-cd ~/Projects/build/AsiCamera-build
-cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release ~/Projects/AsiCamera
+cd ~/Projects/build/AsiCamera
+cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_BUILD_TYPE=Release ~/Projects/AsiCamera
 make -j4
 ```
 
