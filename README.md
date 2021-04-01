@@ -53,6 +53,8 @@ You can run with a preloaded library
 ```
 LD_PRELOAD=~/Projects/build/AsiCamera/lib/libASICamera2Boost.so indiserver indi_asi_ccd
 ```
+![image](https://user-images.githubusercontent.com/73316926/113363285-c8c5b900-9350-11eb-9c1d-2ff4f3ef3e89.png)
+
 ## Example - performance
 Sample program that tests all connected cameras for different BandWidth values.
 In the arguments of the program, you can specify camera options, For example:
