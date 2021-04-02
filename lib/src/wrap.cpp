@@ -359,7 +359,7 @@ ASICAMERA_API ASI_ERROR_CODE ASISetControlValue(int  iCameraID, ASI_CONTROL_TYPE
         return ASI_SUCCESS;
 
     case 130:
-        return cameraBoost->setMaxChunkSize(lValue) ? ASI_SUCCESS : ASI_ERROR_INVALID_SEQUENCE;
+        return cameraBoost->setMaxChunkSize(lValue * 1024 * 1024) ? ASI_SUCCESS : ASI_ERROR_INVALID_SEQUENCE;
 
     case 131:
         return cameraBoost->setChunkedTransfers(lValue) ? ASI_SUCCESS : ASI_ERROR_INVALID_SEQUENCE;
