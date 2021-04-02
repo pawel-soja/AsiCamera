@@ -238,6 +238,15 @@ void CameraBoost::startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, b
     if(submitTransfer(transfer, timeout) == false)
         return;
 
+    // ASI 120 MC Fix
+    if (mCurrentBuffer != nullptr)
+    {
+        uint32_t tag = *reinterpret_cast<uint32_t*>(mCurrentBuffer);
+        *reinterpret_cast<uint32_t*>(*usbBuffer) = tag;
+        // if (*data == 0xbb00aa11) <-- libASICamera2
+        dbg_printf("tag: 0x%08x", tag);
+    }
+
     *bytesRead = size;
     mChunkedTransferIndex = (mChunkedTransferIndex + 1) % mChunkedTransfers;
 }
