@@ -13,6 +13,11 @@ The reasons are:
 
 # What has been improved?
 After an in-depth analysis of the original library, frame copying has been completely removed in libASICamera2Boost. In addition, more bulks transfers to USB ensure more stable operation.
+Additionally:
+- you can use several cameras at once
+- more frames per second
+- more stable work
+- correct first frame (long exposure)
 
 # What is the difference in use?
 Just swap the libraries!
@@ -22,8 +27,8 @@ With this function, you will get an address to the frame buffer. The data is ava
 # Additional Features
 The library offers additional features that increase performance and facilitate debugging. To use, you have to manipulate the source of the program that is using the library.
 - ASIGetVideoDataPointer - this function gives direct access to frame data. Copying avoided
-- gCameraBoostEnable - global bool variable - restore the original behavior of the library
-- gCameraBoostDebug - global bool variable - print additional information useful for debugging to stderr
+- gCameraBoostEnable - global bool variable - restore the original behavior of the library **(also see Control Caps!)**
+- gCameraBoostDebug - global bool variable - print additional information useful for debugging to stderr **(also see Control Caps!)**
 
 # Building
 
