@@ -277,6 +277,7 @@ int CameraBoost::InsertBuff(uchar *buffer, int bufferSize, ushort v1, int i1, us
         return 0;
     }
 
+    dbg_printf("ready: %p", mCurrentBuffer);
     mBuffersReady.push(mCurrentBuffer);
 
     return 0;
@@ -307,14 +308,14 @@ void CameraBoost::releaseAsyncXfer()
 
     if (usbBuffer)
     {
-        dbg_printf("restore usb buffer: *%p =  %p", usbBuffer, realUsbBuffer);
+        dbg_printf("restore usb buffer: *%p <- %p", usbBuffer, realUsbBuffer);
         *usbBuffer = realUsbBuffer;
     }
 
     if (imageBuffer)
     {
         // Too late, initAsyncXfer -> InsertBuff -> releaseAsyncXfer -> ReadBuff
-        dbg_printf("restore image buffer: *%p =  %p", imageBuffer, realImageBuffer);
+        dbg_printf("restore image buffer: *%p <- %p", imageBuffer, realImageBuffer);
         *imageBuffer = realImageBuffer;
     }
 
@@ -348,7 +349,7 @@ int CameraBoost::ReadBuff(uchar* buffer, uint size, uint timeout)
     timeout = std::max(timeout, uint(1000)); // minimum second.
 
     uchar *p = get(timeout);
-    dbg_printf("swap image buffer: *%p =  %p", imageBuffer, p);
+    dbg_printf("swap image buffer: *%p <- %p", imageBuffer, p);
 
     *imageBuffer = p;
 
