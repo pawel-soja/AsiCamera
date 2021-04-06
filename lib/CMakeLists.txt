@@ -16,11 +16,14 @@ ENDIF ()
 add_custom_command (
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libASICamera2_redefined.a
     COMMAND objcopy
+        --redefine-sym ASICloseCamera=__real_ASICloseCamera
         --redefine-sym ASIOpenCamera=__real_ASIOpenCamera
         --redefine-sym ASIGetNumOfControls=__real_ASIGetNumOfControls
         --redefine-sym ASIGetControlCaps=__real_ASIGetControlCaps
         --redefine-sym ASIGetControlValue=__real_ASIGetControlValue
         --redefine-sym ASISetControlValue=__real_ASISetControlValue
+        --redefine-sym ASIGetVideoData=__real__ASIGetVideoData
+        --redefine-sym ASIGetDataAfterExp=__real__ASIGetDataAfterExp
 
         ${PROJECT_SOURCE_DIR}/../libasicamera2/lib/${ASIARCH}/libASICamera2.a ${CMAKE_CURRENT_BINARY_DIR}/libASICamera2_redefined.a
 )
@@ -47,6 +50,7 @@ target_link_libraries(ASICamera2Boost PRIVATE
     -Wl,--wrap=_ZN6CirBuf10InsertBuffEPhititiii
     -Wl,--wrap=_ZN6CirBufC1El
     -Wl,--wrap=_ZN11CCameraBase12InitVariableEv
+    -Wl,--wrap=_ZN11CCameraBase11CloseCameraEv
     -Wl,--wrap=_ZN10CCameraFX313initAsyncXferEiiihPh
     -Wl,--wrap=_ZN10CCameraFX314startAsyncXferEjjPiPbi
     -Wl,--wrap=_ZN10CCameraFX316releaseAsyncXferEv

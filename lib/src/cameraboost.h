@@ -29,10 +29,14 @@ extern bool gCameraBoostEnable;
 
 # define dbg_printf(f_, ...) \
 do { \
-    if (gCameraBoostDebug) fprintf(stderr, ("[%s]: " f_ "\n"), __FUNCTION__, ## __VA_ARGS__); \
+    if (gCameraBoostDebug) fprintf(stderr, ("[boost %s]: " f_ "\n"), __FUNCTION__, ## __VA_ARGS__); \
 } while(0)
 
-# define err_printf(f_, ...) fprintf(stderr, ("[%s]: " f_ "\n"), __FUNCTION__, ## __VA_ARGS__)
+# define err_printf(f_, ...) fprintf(stderr, ("[boost %s]: " f_ "\n"), __FUNCTION__, ## __VA_ARGS__)
+
+#ifndef UNUSED
+# define UNUSED(x) (void)x
+#endif
 
 class CCameraFX3;
 class CirBuf;
@@ -54,6 +58,9 @@ public:
 public:
     bool grow();
     void initialBuffers();
+    void release();
+
+    void* prepareToRead(uint timeout);
 
 public: // reimplement
     void initAsyncXfer(int bufferSize, int transferCount, int chunkSize, uchar endpoint, uchar *buffer);
