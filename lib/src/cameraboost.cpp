@@ -267,6 +267,8 @@ void CameraBoost::startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, b
         return;
 
     *bytesRead = size;
+    *usbBuffer = mCurrentBuffer;
+    dbg_printf("swap usb   buffer: *%p <- %p", usbBuffer, mCurrentBuffer);
     mChunkedTransferIndex = (mChunkedTransferIndex + 1) % mChunkedTransfers;
 }
 
@@ -350,9 +352,8 @@ void* CameraBoost::prepareToRead(uint timeout)
         return nullptr;
     }
 
-    *imageBuffer = *usbBuffer = p;
+    *imageBuffer = p;
     dbg_printf("swap image buffer: *%p <- %p", imageBuffer, p);
-    dbg_printf("swap usb   buffer: *%p <- %p", usbBuffer, p);
 
     return p;
 }
