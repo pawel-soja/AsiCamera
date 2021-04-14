@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
 
     int iCameraID = 0;
     
-    ASIGetVideoDataPointerInit();
+    // ASIGetVideoDataPointerInit();
     ERROR_CHECK(ASIOpenCamera(iCameraID));
     ERROR_CHECK(ASIInitCamera(iCameraID));
 
