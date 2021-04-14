@@ -175,6 +175,7 @@ void CameraBoost::initAsyncXfer(int bufferSize, int transferCount, int chunkSize
     {
         usbBuffer = find_pointer_address(mCCameraBase, 0x600, buffer);
         dbg_printf("find usb buffer: *%p == %p", usbBuffer, buffer);
+        dbg_printf("usb buffer offset: 0x%04x", static_cast<uint>(reinterpret_cast<ptrdiff_t>(usbBuffer) - reinterpret_cast<ptrdiff_t>(mCCameraBase)));
         if (usbBuffer == nullptr)
         {
             err_printf("cannot find usb buffer");
