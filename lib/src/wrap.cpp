@@ -33,6 +33,41 @@ static std::unordered_map<CCameraBase*, CameraBoost*> gCameraBoost_CCameraBase;
 static std::unordered_map<CirBuf*,      CameraBoost*> gCameraBoost_CirBuf;
 
 
+static const char *toString(ASI_CONTROL_TYPE value)
+{
+    switch (int(value))
+    {
+    case ASI_GAIN: return "ASI_GAIN";
+    case ASI_EXPOSURE: return "ASI_EXPOSURE";
+    case ASI_GAMMA: return "ASI_GAMMA";
+    case ASI_WB_R: return "ASI_WB_R";
+    case ASI_WB_B: return "ASI_WB_B";
+    case ASI_OFFSET: return "ASI_OFFSET";
+    case ASI_BANDWIDTHOVERLOAD: return "ASI_BANDWIDTHOVERLOAD";
+    case ASI_OVERCLOCK: return "ASI_OVERCLOCK";
+    case ASI_TEMPERATURE: return "ASI_TEMPERATURE";
+    case ASI_FLIP: return "ASI_FLIP";
+    case ASI_AUTO_MAX_GAIN: return "ASI_AUTO_MAX_GAIN";
+    case ASI_AUTO_MAX_EXP: return "ASI_AUTO_MAX_EXP";
+    case ASI_AUTO_TARGET_BRIGHTNESS: return "ASI_AUTO_TARGET_BRIGHTNESS";
+    case ASI_HARDWARE_BIN: return "ASI_HARDWARE_BIN";
+    case ASI_HIGH_SPEED_MODE: return "ASI_HIGH_SPEED_MODE";
+    case ASI_COOLER_POWER_PERC: return "ASI_COOLER_POWER_PERC";
+    case ASI_TARGET_TEMP: return "ASI_TARGET_TEMP";
+    case ASI_COOLER_ON: return "ASI_COOLER_ON";
+    case ASI_MONO_BIN: return "ASI_MONO_BIN";
+    case ASI_FAN_ON: return "ASI_FAN_ON";
+    case ASI_PATTERN_ADJUST: return "ASI_PATTERN_ADJUST";
+    case ASI_ANTI_DEW_HEATER: return "ASI_ANTI_DEW_HEATER";
+    case 128: return "BOOST_ASI_CAMERA_BOOST_DEBUG";
+    case 129: return "BOOST_ASI_CAMERA_DEBUG";
+    case 130: return "BOOST_ASI_MAX_CHUNK_SIZE";
+    case 131: return "BOOST_ASI_CHUNKED_TRANSFERS";
+    case 132: return "BOOST_ASI_USBFS_MEMORY_MB";
+    }
+    return "Unknown";
+}
+
 static CameraBoost *newCameraBoost(int iCameraID)
 {
     std::lock_guard<std::mutex> lock(gBoostCameraDataMutex);
@@ -311,7 +346,7 @@ ASICAMERA_API ASI_ERROR_CODE ASIGetControlCaps(int iCameraID, int iControlIndex,
             pControlCaps->IsAutoSupported = ASI_FALSE;
             pControlCaps->IsWritable = ASI_TRUE;
             pControlCaps->ControlType = ASI_CONTROL_TYPE(128);
-            return ASI_SUCCESS;
+            break;
         case 1:
             strcpy(pControlCaps->Name, "CameraDebug");
             strcpy(pControlCaps->Description, "Enable debug mode for ASICamera2");
@@ -321,7 +356,7 @@ ASICAMERA_API ASI_ERROR_CODE ASIGetControlCaps(int iCameraID, int iControlIndex,
             pControlCaps->IsAutoSupported = ASI_FALSE;
             pControlCaps->IsWritable = ASI_TRUE;
             pControlCaps->ControlType = ASI_CONTROL_TYPE(129);
-            return ASI_SUCCESS;
+            break;
         case 2:
             strcpy(pControlCaps->Name, "MaxChunkSize");
             strcpy(pControlCaps->Description, "Size limit of a single USB transfer(MB)");
@@ -331,7 +366,7 @@ ASICAMERA_API ASI_ERROR_CODE ASIGetControlCaps(int iCameraID, int iControlIndex,
             pControlCaps->IsAutoSupported = ASI_FALSE;
             pControlCaps->IsWritable = ASI_TRUE;
             pControlCaps->ControlType = ASI_CONTROL_TYPE(130);
-            return ASI_SUCCESS;
+            break;
         case 3:
             strcpy(pControlCaps->Name, "ChunkedTransfers");
             strcpy(pControlCaps->Description, "Number of chunked transfers");
@@ -341,7 +376,7 @@ ASICAMERA_API ASI_ERROR_CODE ASIGetControlCaps(int iCameraID, int iControlIndex,
             pControlCaps->IsAutoSupported = ASI_FALSE;
             pControlCaps->IsWritable = ASI_TRUE;
             pControlCaps->ControlType = ASI_CONTROL_TYPE(131);
-            return ASI_SUCCESS;
+            break;
         case 4: {
             std::ifstream file("/sys/module/usbcore/parameters/usbfs_memory_mb");
             strcpy(pControlCaps->Name, "USBMemory");
@@ -353,19 +388,30 @@ ASICAMERA_API ASI_ERROR_CODE ASIGetControlCaps(int iCameraID, int iControlIndex,
             pControlCaps->IsAutoSupported = ASI_FALSE;
             pControlCaps->IsWritable = ASI_TRUE;
             pControlCaps->ControlType = ASI_CONTROL_TYPE(132);
-            return ASI_SUCCESS;
+            break;
         }
+        default:
+            ret = ASI_ERROR_INVALID_INDEX;
         }
     }
+    else
+    {
+        ret = __real_ASIGetControlCaps(iCameraID, iControlIndex, pControlCaps);
+    }
 
-    return __real_ASIGetControlCaps(iCameraID, iControlIndex, pControlCaps);
+    if (ret == ASI_SUCCESS)
+        dbg_printf("%s:%ld", toString(pControlCaps->ControlType), pControlCaps->DefaultValue);
+    else
+        dbg_printf("error:%d, index:%d", ret, iControlIndex);
+
+    return ret;
 }
 
 ASICAMERA_API ASI_ERROR_CODE __real_ASIGetControlValue(int  iCameraID, ASI_CONTROL_TYPE  ControlType, long *plValue, ASI_BOOL *pbAuto);
 ASICAMERA_API ASI_ERROR_CODE ASIGetControlValue(int  iCameraID, ASI_CONTROL_TYPE  ControlType, long *plValue, ASI_BOOL *pbAuto)
 {
     const CameraBoost *cameraBoost = getCameraBoost(iCameraID);
-
+    ASI_ERROR_CODE ret = ASI_SUCCESS;
     if (cameraBoost)
     {
         switch (int(ControlType))
@@ -373,37 +419,46 @@ ASICAMERA_API ASI_ERROR_CODE ASIGetControlValue(int  iCameraID, ASI_CONTROL_TYPE
         case 128:
             if (plValue) *plValue = gCameraBoostDebug;
             if (pbAuto) *pbAuto = ASI_FALSE;
-            return ASI_SUCCESS;
-
+            break;
         case 129:
             if (plValue) *plValue = g_bDebugPrint;
             if (pbAuto) *pbAuto = ASI_FALSE;
-            return ASI_SUCCESS;
-
+            break;
         case 130:
             if (plValue) *plValue = cameraBoost->getMaxChunkSize() / 1024 / 1024;
             if (pbAuto) *pbAuto = ASI_FALSE;
-            return ASI_SUCCESS;
-
+            break;
         case 131:
             if (plValue) *plValue = cameraBoost->getChunkedTransfers();
             if (pbAuto) *pbAuto = ASI_FALSE;
-            return ASI_SUCCESS;
+            break;
 
         case 132:
             if (plValue) std::ifstream("/sys/module/usbcore/parameters/usbfs_memory_mb") >> *plValue;
             if (pbAuto) *pbAuto = ASI_FALSE;
-        default:;
+            break;
+        default:
+            ret = __real_ASIGetControlValue(iCameraID, ControlType, plValue, pbAuto);
         }
     }
+    else
+    {
+        ret = __real_ASIGetControlValue(iCameraID, ControlType, plValue, pbAuto);
+    }
 
-    return __real_ASIGetControlValue(iCameraID, ControlType, plValue, pbAuto);
+    if (ret == ASI_SUCCESS)
+        dbg_printf("%s:%ld", toString(ControlType), plValue ? *plValue : -1);
+    else
+        dbg_printf("%s:error:%d", toString(ControlType), ret);
+
+    return ret;
 }
 
 ASICAMERA_API ASI_ERROR_CODE __real_ASISetControlValue(int  iCameraID, ASI_CONTROL_TYPE  ControlType, long lValue, ASI_BOOL bAuto);
 ASICAMERA_API ASI_ERROR_CODE ASISetControlValue(int  iCameraID, ASI_CONTROL_TYPE  ControlType, long lValue, ASI_BOOL bAuto)
 {
     CameraBoost *cameraBoost = getCameraBoost(iCameraID);
+    ASI_ERROR_CODE ret = ASI_SUCCESS;
 
     if (cameraBoost)
     {
@@ -411,32 +466,49 @@ ASICAMERA_API ASI_ERROR_CODE ASISetControlValue(int  iCameraID, ASI_CONTROL_TYPE
         {
         case 128:
             gCameraBoostDebug = lValue;
-            return ASI_SUCCESS;
+            break;
 
         case 129:
             g_bDebugPrint = lValue;
-            return ASI_SUCCESS;
+            break;
 
         case 130:
-            return cameraBoost->setMaxChunkSize(lValue * 1024 * 1024) ? ASI_SUCCESS : ASI_ERROR_INVALID_SEQUENCE;
+            if (!cameraBoost->setMaxChunkSize(lValue * 1024 * 1024))
+                ret = ASI_ERROR_INVALID_SEQUENCE;
+            break;
 
         case 131:
-            return cameraBoost->setChunkedTransfers(lValue) ? ASI_SUCCESS : ASI_ERROR_INVALID_SEQUENCE;
+            if (!cameraBoost->setChunkedTransfers(lValue))
+                ret = ASI_ERROR_INVALID_SEQUENCE;
+            break;
 
         case 132: {
             std::ofstream file("/sys/module/usbcore/parameters/usbfs_memory_mb");
             if (!file.good())
-                return ASI_ERROR_GENERAL_ERROR;
+            {
+                ret = ASI_ERROR_GENERAL_ERROR;
+                break;
+            }
 
             file << lValue;
 
-            return ASI_SUCCESS;
+            break;
         }
-        default:;
+        default:
+            ret = __real_ASISetControlValue(iCameraID, ControlType, lValue, bAuto);
         }
     }
+    else
+    {
+        ret = __real_ASISetControlValue(iCameraID, ControlType, lValue, bAuto);
+    }
 
-    return __real_ASISetControlValue(iCameraID, ControlType, lValue, bAuto);
+    if (ret == ASI_SUCCESS)
+        dbg_printf("%s:%ld, auto:%s", toString(ControlType), lValue, bAuto ? "true" : "false");
+    else
+        dbg_printf("%s:error:%d", toString(ControlType), ret);
+
+    return ret;
 }
 
 #ifndef NDEBUG
