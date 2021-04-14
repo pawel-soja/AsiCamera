@@ -133,8 +133,10 @@ static bool ASIGetVideoDataPointerInit()
 
 #define ERROR_CHECK(x) do { \
     ASI_ERROR_CODE rc = x; \
-    if (rc != ASI_SUCCESS) \
+    if (rc != ASI_SUCCESS) { \
         fprintf(stderr, "ERROR: %s: %s\n", #x, toString(rc)); \
+        abort(); \
+    } \
 } while(0)
 
 int main(int argc, char *argv[])
@@ -211,6 +213,13 @@ int main(int argc, char *argv[])
     do
     {
         rc = ASIGetExpStatus(iCameraID, &expStatus);
+        ERROR_CHECK(rc);
+        if (expStatus == ASI_EXP_FAILED)
+        {
+            fprintf(stderr, "ASI_EXP_FAILED\n");
+            abort();
+        }
+        usleep(1000);
     }
     while (rc == ASI_SUCCESS && expStatus != ASI_EXP_SUCCESS);
 
