@@ -17,6 +17,33 @@
 
 #include <dlfcn.h>
 
+const char *toString(ASI_ERROR_CODE rc)
+{
+    switch (rc)
+    {
+    case ASI_SUCCESS: return "ASI_SUCCESS";
+    case ASI_ERROR_INVALID_INDEX: return "ASI_ERROR_INVALID_INDEX";
+    case ASI_ERROR_INVALID_ID: return "ASI_ERROR_INVALID_ID";
+    case ASI_ERROR_INVALID_CONTROL_TYPE: return "ASI_ERROR_INVALID_CONTROL_TYPE";
+    case ASI_ERROR_CAMERA_CLOSED: return "ASI_ERROR_CAMERA_CLOSED";
+    case ASI_ERROR_CAMERA_REMOVED: return "ASI_ERROR_CAMERA_REMOVED";
+    case ASI_ERROR_INVALID_PATH: return "ASI_ERROR_INVALID_PATH";
+    case ASI_ERROR_INVALID_FILEFORMAT: return "ASI_ERROR_INVALID_FILEFORMAT";
+    case ASI_ERROR_INVALID_SIZE: return "ASI_ERROR_INVALID_SIZE";
+    case ASI_ERROR_INVALID_IMGTYPE: return "ASI_ERROR_INVALID_IMGTYPE";
+    case ASI_ERROR_OUTOF_BOUNDARY: return "ASI_ERROR_OUTOF_BOUNDARY";
+    case ASI_ERROR_TIMEOUT: return "ASI_ERROR_TIMEOUT";
+    case ASI_ERROR_INVALID_SEQUENCE: return "ASI_ERROR_INVALID_SEQUENCE";
+    case ASI_ERROR_BUFFER_TOO_SMALL: return "ASI_ERROR_BUFFER_TOO_SMALL";
+    case ASI_ERROR_VIDEO_MODE_ACTIVE: return "ASI_ERROR_VIDEO_MODE_ACTIVE";
+    case ASI_ERROR_EXPOSURE_IN_PROGRESS: return "ASI_ERROR_EXPOSURE_IN_PROGRESS";
+    case ASI_ERROR_GENERAL_ERROR: return "ASI_ERROR_GENERAL_ERROR";
+    case ASI_ERROR_INVALID_MODE: return "ASI_ERROR_INVALID_MODE";
+    case ASI_ERROR_END: return "ASI_ERROR_END";
+    default: return "Unknown";
+    }
+}
+
 static bool setImageFormat(int iCameraID, ASI_IMG_TYPE type)
 {
     int w, h, bin, rc;
@@ -104,9 +131,15 @@ static bool ASIGetVideoDataPointerInit()
     return pASIGetVideoDataPointer != nullptr;
 }
 
+#define ERROR_CHECK(x) do { \
+    ASI_ERROR_CODE rc = x; \
+    if (rc != ASI_SUCCESS) \
+        fprintf(stderr, "ERROR: %s: %s\n", #x, toString(rc)); \
+} while(0)
+
 int main(int argc, char *argv[])
 {
-    //g_bDebugPrint = true;
+    g_bDebugPrint = true;
     gCameraBoostDebug = true;
 
 #ifdef CAMERABOOST_DISABLE
@@ -122,29 +155,31 @@ int main(int argc, char *argv[])
     int iCameraID = 0;
     
     ASIGetVideoDataPointerInit();
-    ASIOpenCamera(iCameraID);
-    ASIInitCamera(iCameraID);
+    ERROR_CHECK(ASIOpenCamera(iCameraID));
+    ERROR_CHECK(ASIInitCamera(iCameraID));
 
     // default values
     int exposure = 100000;
-    ASISetControlValue(iCameraID, ASI_EXPOSURE,          exposure, ASI_FALSE);
-    ASISetControlValue(iCameraID, ASI_HIGH_SPEED_MODE,   1,   ASI_FALSE);
-    ASISetControlValue(iCameraID, ASI_BANDWIDTHOVERLOAD, 100, ASI_FALSE);
-    ASISetControlValue(iCameraID, ASI_GAIN,              100, ASI_FALSE);
+    ERROR_CHECK(ASISetControlValue(iCameraID, ASI_EXPOSURE,          exposure, ASI_FALSE));
+    ERROR_CHECK(ASISetControlValue(iCameraID, ASI_HIGH_SPEED_MODE,   1,   ASI_FALSE));
+    ERROR_CHECK(ASISetControlValue(iCameraID, ASI_BANDWIDTHOVERLOAD, 100, ASI_FALSE));
+    ERROR_CHECK(ASISetControlValue(iCameraID, ASI_GAIN,              100, ASI_FALSE));
     
     setArguments(iCameraID, argc, argv, &exposure);
 
     ASI_CAMERA_INFO info;
-    ASIGetCameraProperty(&info, iCameraID);
+    ERROR_CHECK(ASIGetCameraProperty(&info, iCameraID));
 
     std::vector<unsigned char> buffer(info.MaxWidth * info.MaxWidth * 2, 0);
     unsigned char *ptr = buffer.data();
     size_t size = buffer.size();
 
-    ASIStartVideoCapture(iCameraID);
+    printf("\nVideo Capture\n");
+
+    ERROR_CHECK(ASIStartVideoCapture(iCameraID));
 
     DeltaTime deltaTime;
-    for(int i=0; i<50; ++i)
+    for(int i=0; i<5; ++i)
     {
         ASI_ERROR_CODE rc;
         if (pASIGetVideoDataPointer == nullptr)
@@ -164,8 +199,22 @@ int main(int argc, char *argv[])
         printf("timeframe: %5.0fms, status: %d\n", deltaTime.stop() * 1000, rc);
     }
 
-    ASIStopVideoCapture(iCameraID);
-    ASICloseCamera(iCameraID);
+    ERROR_CHECK(ASIStopVideoCapture(iCameraID));
+
+    printf("\nExposure\n");
+
+    ERROR_CHECK(ASIStartExposure(iCameraID, ASI_FALSE));
+    ASI_EXPOSURE_STATUS expStatus;
+    ASI_ERROR_CODE rc;
+    do
+    {
+        rc = ASIGetExpStatus(iCameraID, &expStatus);
+    }
+    while (rc == ASI_SUCCESS && expStatus != ASI_EXP_SUCCESS);
+
+    ERROR_CHECK(ASIGetDataAfterExp(iCameraID, buffer.data(), buffer.size()));
+
+    ERROR_CHECK(ASICloseCamera(iCameraID));
     
     return 0;
 }
