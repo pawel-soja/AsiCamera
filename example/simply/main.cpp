@@ -146,6 +146,8 @@ int main(int argc, char *argv[])
     gCameraBoostEnable = false;
 #endif
 
+    printf("SDK Version: %s\n", ASIGetSDKVersion());
+
     if (ASIGetNumOfConnectedCameras() == 0)
     {
         fprintf(stderr, "No camera found\n");
