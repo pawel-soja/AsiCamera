@@ -131,6 +131,24 @@ void CameraBoost::initialBuffers()
 #endif
 }
 
+void CameraBoost::release()
+{
+    if (usbBuffer && realUsbBuffer)
+    {
+        dbg_printf("restore usb   buffer: *%p <- %p", usbBuffer, realUsbBuffer);
+        *usbBuffer = realUsbBuffer;
+    }
+
+    if (imageBuffer && realImageBuffer)
+    {
+        dbg_printf("restore image buffer: *%p <- %p", imageBuffer, realImageBuffer);
+        *imageBuffer = realImageBuffer;
+    }
+    realUsbBuffer = nullptr;
+    realImageBuffer = nullptr;
+
+}
+
 // reimplement
 
 void CameraBoost::initAsyncXfer(int bufferSize, int transferCount, int chunkSize, uchar endpoint, uchar *buffer)
@@ -153,14 +171,25 @@ void CameraBoost::initAsyncXfer(int bufferSize, int transferCount, int chunkSize
     // Lazy load
     initialBuffers();
 
-    usbBuffer = find_pointer_address(mCCameraBase, 0x600, buffer);
-    dbg_printf("find usb buffer: *%p == %p", usbBuffer, buffer);
-    if (usbBuffer == nullptr)
+    if (realUsbBuffer == nullptr)
     {
-        err_printf("cannot find usb buffer");
-        abort();
+        usbBuffer = find_pointer_address(mCCameraBase, 0x600, buffer);
+        dbg_printf("find usb buffer: *%p == %p", usbBuffer, buffer);
+        dbg_printf("usb buffer offset: 0x%04x", static_cast<uint>(reinterpret_cast<ptrdiff_t>(usbBuffer) - reinterpret_cast<ptrdiff_t>(mCCameraBase)));
+        if (usbBuffer == nullptr)
+        {
+            err_printf("cannot find usb buffer");
+            abort();
+        }
+        realUsbBuffer = *usbBuffer;
+
+        imageBuffer = usbBuffer - 2; // trust me...
+        realImageBuffer = *imageBuffer;
+
+        //delete[] static_cast<uint16_t*>(realUsbBuffer);
+        //delete[] static_cast<uint16_t*>(realImageBuffer);
     }
-    realUsbBuffer = buffer;
+
     mInvalidDataFrames = 0;
 
     dbg_printf("create chunked bulk transfer, bufferSize: %d, chunkSize: %d", bufferSize, mMaxChunkSize);
@@ -239,11 +268,15 @@ void CameraBoost::startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, b
         return;
 
     *bytesRead = size;
+    *usbBuffer = mCurrentBuffer;
+    dbg_printf("swap usb   buffer: *%p <- %p", usbBuffer, mCurrentBuffer);
     mChunkedTransferIndex = (mChunkedTransferIndex + 1) % mChunkedTransfers;
 }
 
 int CameraBoost::InsertBuff(uchar *buffer, int bufferSize, ushort v1, int i1, ushort v2, int i2, int i3, int i4)
 {
+    UNUSED(buffer);
+
     if (mCurrentBuffer == nullptr)
         return 0;
 
@@ -306,37 +339,33 @@ void CameraBoost::releaseAsyncXfer()
         transfer.setBuffer(nullptr);
     }
 
-    if (usbBuffer)
-    {
-        dbg_printf("restore usb buffer: *%p <- %p", usbBuffer, realUsbBuffer);
-        *usbBuffer = realUsbBuffer;
-    }
-
-    if (imageBuffer)
-    {
-        // Too late, initAsyncXfer -> InsertBuff -> releaseAsyncXfer -> ReadBuff
-        dbg_printf("restore image buffer: *%p <- %p", imageBuffer, realImageBuffer);
-        *imageBuffer = realImageBuffer;
-    }
-
     mIsRunning = false;
+}
+
+void* CameraBoost::prepareToRead(uint timeout)
+{
+    timeout = std::max(timeout, uint(1000)); // minimum second.
+    uchar *p = get(timeout);
+
+    if (p == nullptr)
+    {
+        dbg_printf("timeout");
+        return nullptr;
+    }
+
+    *imageBuffer = p;
+    dbg_printf("swap image buffer: *%p <- %p", imageBuffer, p);
+
+    return p;
 }
 
 int CameraBoost::ReadBuff(uchar* buffer, uint size, uint timeout)
 {
-    // Too late, initAsyncXfer -> InsertBuff -> releaseAsyncXfer -> ReadBuff
-    if (imageBuffer == nullptr)
-    {
-        imageBuffer = find_pointer_address(mCCameraBase, 0x600, buffer);
-        dbg_printf("find image buffer: *%p == %p", imageBuffer, buffer);
-        if (imageBuffer == nullptr)
-        {
-            err_printf("cannot find image buffer");
-            abort();
-        }
-        realImageBuffer = buffer;
-    }
+    UNUSED(buffer);
+    UNUSED(size);
+    UNUSED(timeout);
 
+    dbg_printf("stub");
     // the timeout value comes from the user (iWaitms).
     // ASIGetVideoData(int iCameraID, unsigned char* pBuffer, long lBuffSize, int iWaitms);
     // quotation:
@@ -346,13 +375,8 @@ int CameraBoost::ReadBuff(uchar* buffer, uint size, uint timeout)
     // this is not true. The camera is also limited to the maximum FPS.
     // For example, for 32us exposure, the frame rate will not be several thousand.
     // I suggest at least a second because of the start of the first frame.
-    timeout = std::max(timeout, uint(1000)); // minimum second.
-
-    uchar *p = get(timeout);
-    dbg_printf("swap image buffer: *%p <- %p", imageBuffer, p);
-
-    *imageBuffer = p;
-
+    //
+    // see bool CameraBoost::prepareToRead(uint timeout)
     return 1;
 }
 
