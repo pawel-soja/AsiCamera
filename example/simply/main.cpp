@@ -52,13 +52,13 @@ static bool setImageFormat(int iCameraID, ASI_IMG_TYPE type)
     rc = ASIGetROIFormat(0, &w, &h, &bin, &orgType);
     if (rc != ASI_SUCCESS)
     {
-        printf("ASIGetROIFormat error: %d\n", rc);
+        fprintf(stderr, "ASIGetROIFormat error: %d\n", rc);
         return false;
     }
     rc = ASISetROIFormat(0, w, h, bin, type);
     if (rc != ASI_SUCCESS)
     {
-        printf("ASISetROIFormat error: %d\n", rc);
+        fprintf(stderr, "ASISetROIFormat error: %d\n", rc);
         return false;
     }
     return true;
@@ -86,7 +86,7 @@ static void setArguments(int iCameraID, int argc, char *argv[], int *exposure = 
                 ok = setImageFormat(iCameraID, ASI_IMG_RAW16);
             else
             {
-                printf("Unknown format: %s\n", argv[i+1]);
+                fprintf(stderr, "Unknown format: %s\n", argv[i+1]);
                 continue;
             }
         }
@@ -95,13 +95,13 @@ static void setArguments(int iCameraID, int argc, char *argv[], int *exposure = 
             auto option = options.find(argv[i]);
             if (option == options.end())
             {
-                printf("Unknown option: %s\n", argv[i]);
+                fprintf(stderr, "Unknown option: %s\n", argv[i]);
                 continue;
             }
 
             if (!strcmp(argv[i+1], "auto"))
             {
-                printf("Auto option is not supported\n");
+                fprintf(stderr, "Auto option is not supported\n");
                 ok = false;
             }
             else
@@ -110,7 +110,7 @@ static void setArguments(int iCameraID, int argc, char *argv[], int *exposure = 
             }
         }
 
-        printf("%s '%s' to %s\n", ok ? "Set" : "Cannot set", argv[i], argv[i+1]);
+        fprintf(stderr, "%s '%s' to %s\n", ok ? "Set" : "Cannot set", argv[i], argv[i+1]);
     }
 }
 
@@ -132,9 +132,9 @@ static bool ASIGetVideoDataPointerInit()
 }
 
 #define ERROR_CHECK(x) do { \
-    ASI_ERROR_CODE rc = x; \
-    if (rc != ASI_SUCCESS) { \
-        fprintf(stderr, "ERROR: %s: %s\n", #x, toString(rc)); \
+    ASI_ERROR_CODE _rc = x; \
+    if (_rc != ASI_SUCCESS) { \
+        fprintf(stderr, "ERROR: %s: %s (%d)\n", #x, toString(_rc), _rc); \
         abort(); \
     } \
 } while(0)
@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
     gCameraBoostEnable = false;
 #endif
 
-    printf("SDK Version: %s\n", ASIGetSDKVersion());
+    fprintf(stderr, "SDK Version: %s\n", ASIGetSDKVersion());
 
     if (ASIGetNumOfConnectedCameras() == 0)
     {
@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
     unsigned char *ptr = buffer.data();
     size_t size = buffer.size();
 
-    printf("\nVideo Capture\n");
+    fprintf(stderr, "\nVideo Capture\n");
 
     ERROR_CHECK(ASIStartVideoCapture(iCameraID));
 
@@ -200,12 +200,12 @@ int main(int argc, char *argv[])
                 exposure * 2 + 500
             );
 
-        printf("timeframe: %5.0fms, status: %d\n", deltaTime.stop() * 1000, rc);
+        fprintf(stderr, "timeframe: %5.0fms, status: %d\n", deltaTime.stop() * 1000, rc);
     }
 
     ERROR_CHECK(ASIStopVideoCapture(iCameraID));
 
-    printf("\nExposure\n");
+    fprintf(stderr, "\nExposure\n");
 
     ERROR_CHECK(ASIStartExposure(iCameraID, ASI_FALSE));
     ASI_EXPOSURE_STATUS expStatus;
