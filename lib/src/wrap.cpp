@@ -391,7 +391,7 @@ ASICAMERA_API ASI_ERROR_CODE ASIGetControlCaps(int iCameraID, int iControlIndex,
             break;
         }
         default:
-            ret = ASI_ERROR_INVALID_INDEX;
+            ret = __real_ASIGetControlCaps(iCameraID, iControlIndex, pControlCaps);
         }
     }
     else
