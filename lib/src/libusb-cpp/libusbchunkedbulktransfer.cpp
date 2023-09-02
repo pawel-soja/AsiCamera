@@ -37,7 +37,7 @@ public:
         void *buffer = nullptr,
         size_t length = 0,
         size_t chunk = 1,
-        uint timeout = 0
+        unsigned int timeout = 0
     )
         : done(0)
         , pending(0)
@@ -101,7 +101,7 @@ LibUsbChunkedBulkTransfer::LibUsbChunkedBulkTransfer()
 
 }
 
-LibUsbChunkedBulkTransfer::LibUsbChunkedBulkTransfer(libusb_device_handle *dev, uint8_t endpoint, void *buffer, size_t length, size_t chunk, uint timeout)
+LibUsbChunkedBulkTransfer::LibUsbChunkedBulkTransfer(libusb_device_handle *dev, uint8_t endpoint, void *buffer, size_t length, size_t chunk, unsigned int timeout)
     : d_ptr(new LibUsbChunkedBulkTransferPrivate(dev, endpoint, buffer, length, chunk, timeout))
 {
 
@@ -153,7 +153,7 @@ LibUsbChunkedBulkTransfer& LibUsbChunkedBulkTransfer::cancel()
     return *this;
 }
 
-LibUsbChunkedBulkTransfer& LibUsbChunkedBulkTransfer::wait(uint timeout)
+LibUsbChunkedBulkTransfer& LibUsbChunkedBulkTransfer::wait(unsigned int timeout)
 {
     LibUsbChunkedBulkTransferPrivate *d = d_func();
     std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
@@ -203,7 +203,7 @@ LibUsbChunkedBulkTransfer& LibUsbChunkedBulkTransfer::transfer()
     return *this;
 }
 
-uint LibUsbChunkedBulkTransfer::actualLength() const
+unsigned int LibUsbChunkedBulkTransfer::actualLength() const
 {
     return d_func()->actualLength;
 }

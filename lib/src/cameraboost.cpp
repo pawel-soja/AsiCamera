@@ -88,7 +88,7 @@ size_t CameraBoost::bufferSize() const
     return mBufferSize;
 }
 
-uchar *CameraBoost::get(uint timeout)
+uchar *CameraBoost::get(unsigned int timeout)
 {
     uchar *buffer = mBuffersReady.pop(timeout);  // take ready buffer, TODO timeout
     mBuffersFree.push(mBuffersBusy.pop(0)); // move processed buffer to free buffer queue
@@ -96,7 +96,7 @@ uchar *CameraBoost::get(uint timeout)
     return buffer;
 }
 
-uchar *CameraBoost::peek(uint timeout)
+uchar *CameraBoost::peek(unsigned int timeout)
 {
     return mBuffersReady.peek(timeout);
 }
@@ -121,7 +121,7 @@ bool CameraBoost::grow()
 
 void CameraBoost::initialBuffers()
 {
-    const uint initialBuffers = mChunkedTransfers + 1;
+    const unsigned int initialBuffers = mChunkedTransfers + 1;
 #ifdef CAMERABOOST_LAZYLOAD
     std::thread([this](){
 #endif
@@ -209,7 +209,7 @@ void CameraBoost::initAsyncXfer(int bufferSize, int transferCount, int chunkSize
 #endif
 }
 
-bool CameraBoost::submitTransfer(LibUsbChunkedBulkTransfer &transfer, uint timeout)
+bool CameraBoost::submitTransfer(LibUsbChunkedBulkTransfer &transfer, unsigned int timeout)
 {
     uchar *buffer;
     while ((buffer = mBuffersFree.pop(2)) == nullptr)
@@ -221,7 +221,7 @@ bool CameraBoost::submitTransfer(LibUsbChunkedBulkTransfer &transfer, uint timeo
     return true;
 }
 
-void CameraBoost::startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, bool *stop, int size)
+void CameraBoost::startAsyncXfer(unsigned int timeout1, unsigned int timeout2, int *bytesRead, bool *stop, int size)
 {
     if (resetDeviceNeeded)
     {
@@ -230,7 +230,7 @@ void CameraBoost::startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, b
     }
 
     // I suggest at least a second because of the start of the first frame.
-    uint timeout = std::max(timeout1, uint(1000)); // minimum second.
+    unsigned int timeout = std::max(timeout1, uint(1000)); // minimum second.
 
     // is first call?
     if (mChunkedTransferIndex < 0)
@@ -342,7 +342,7 @@ void CameraBoost::releaseAsyncXfer()
     mIsRunning = false;
 }
 
-void* CameraBoost::prepareToRead(uint timeout)
+void* CameraBoost::prepareToRead(unsigned int timeout)
 {
     timeout = std::max(timeout, uint(1000)); // minimum second.
     uchar *p = get(timeout);
@@ -359,7 +359,7 @@ void* CameraBoost::prepareToRead(uint timeout)
     return p;
 }
 
-int CameraBoost::ReadBuff(uchar* buffer, uint size, uint timeout)
+int CameraBoost::ReadBuff(uchar* buffer, unsigned int size, unsigned int timeout)
 {
     UNUSED(buffer);
     UNUSED(size);
@@ -376,7 +376,7 @@ int CameraBoost::ReadBuff(uchar* buffer, uint size, uint timeout)
     // For example, for 32us exposure, the frame rate will not be several thousand.
     // I suggest at least a second because of the start of the first frame.
     //
-    // see bool CameraBoost::prepareToRead(uint timeout)
+    // see bool CameraBoost::prepareToRead(unsigned int timeout)
     return 1;
 }
 

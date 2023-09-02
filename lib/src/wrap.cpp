@@ -209,8 +209,8 @@ void __wrap__ZN10CCameraFX313initAsyncXferEiiihPh(CCameraFX3 *ccameraFX3, int bu
 }
 
 // CCameraFX3::startAsyncXfer
-void __real__ZN10CCameraFX314startAsyncXferEjjPiPbi(CCameraFX3 *ccameraFX3, uint timeout1, uint timeout2, int *bytesRead, bool *stop, int size);
-void __wrap__ZN10CCameraFX314startAsyncXferEjjPiPbi(CCameraFX3 *ccameraFX3, uint timeout1, uint timeout2, int *bytesRead, bool *stop, int size)
+void __real__ZN10CCameraFX314startAsyncXferEjjPiPbi(CCameraFX3 *ccameraFX3, unsigned int timeout1, unsigned int timeout2, int *bytesRead, bool *stop, int size);
+void __wrap__ZN10CCameraFX314startAsyncXferEjjPiPbi(CCameraFX3 *ccameraFX3, unsigned int timeout1, unsigned int timeout2, int *bytesRead, bool *stop, int size)
 {
     CameraBoost *cameraBoost = getCameraBoost(ccameraFX3);
     if (cameraBoost)
@@ -231,8 +231,8 @@ int __wrap__ZN6CirBuf10InsertBuffEPhititiii(CirBuf *cirBuf, uchar *buffer, int s
 }
 
 // CirBuf::ReadBuff
-int __real__ZN6CirBuf8ReadBuffEPhii(CirBuf *cirBuf, uchar* buffer, uint size, uint timeout);
-int __wrap__ZN6CirBuf8ReadBuffEPhii(CirBuf *cirBuf, uchar* buffer, uint size, uint timeout)
+int __real__ZN6CirBuf8ReadBuffEPhii(CirBuf *cirBuf, uchar* buffer, unsigned int size, unsigned int timeout);
+int __wrap__ZN6CirBuf8ReadBuffEPhii(CirBuf *cirBuf, uchar* buffer, unsigned int size, unsigned int timeout)
 {
     CameraBoost *cameraBoost = getCameraBoost(cirBuf);
     if (cameraBoost)

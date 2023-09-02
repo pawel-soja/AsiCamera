@@ -23,7 +23,7 @@ class LibUsbChunkedBulkTransfer
 {
 public:
     LibUsbChunkedBulkTransfer();
-    LibUsbChunkedBulkTransfer(libusb_device_handle *dev, uint8_t endpoint, void *buffer, size_t length, size_t chunk, uint timeout = 100 * 1000);
+    LibUsbChunkedBulkTransfer(libusb_device_handle *dev, uint8_t endpoint, void *buffer, size_t length, size_t chunk, unsigned int timeout = 100 * 1000);
     virtual ~LibUsbChunkedBulkTransfer();
 
     LibUsbChunkedBulkTransfer(LibUsbChunkedBulkTransfer &&other);
@@ -32,11 +32,11 @@ public:
 public: // action
     LibUsbChunkedBulkTransfer& submit();
     LibUsbChunkedBulkTransfer& cancel();
-    LibUsbChunkedBulkTransfer& wait(uint timeout = 1000);
+    LibUsbChunkedBulkTransfer& wait(unsigned int timeout = 1000);
     LibUsbChunkedBulkTransfer& transfer();
 
 public: // getters
-    uint actualLength() const;
+    unsigned int actualLength() const;
 
     void *buffer();
 

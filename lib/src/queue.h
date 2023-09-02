@@ -27,9 +27,9 @@ class Queue
 public:
     void push(T data);
 
-    T pop(uint msecs);
+    T pop(unsigned int msecs);
     T popNoWait();
-    T peek(uint msecs);  
+    T peek(unsigned int msecs);  
 
     void clear();
 
@@ -55,7 +55,7 @@ inline void Queue<T>::push(T val)
 }
 
 template <typename T>
-inline T Queue<T>::pop(uint msecs)
+inline T Queue<T>::pop(unsigned int msecs)
 {
     T result = nullptr;
     std::unique_lock<std::mutex> lock(mutex);
@@ -81,7 +81,7 @@ inline T Queue<T>::popNoWait()
 }
 
 template <typename T>
-inline T Queue<T>::peek(uint msecs)
+inline T Queue<T>::peek(unsigned int msecs)
 {
     T result = nullptr;
     std::unique_lock<std::mutex> lock(mutex);

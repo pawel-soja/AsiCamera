@@ -52,24 +52,24 @@ public:
     CameraBoost();
     size_t bufferSize() const;
 
-    uchar *get(uint timeout);
-    uchar *peek(uint timeout);
+    uchar *get(unsigned int timeout);
+    uchar *peek(unsigned int timeout);
 
 public:
     bool grow();
     void initialBuffers();
     void release();
 
-    void* prepareToRead(uint timeout);
+    void* prepareToRead(unsigned int timeout);
 
 public: // reimplement
     void initAsyncXfer(int bufferSize, int transferCount, int chunkSize, uchar endpoint, uchar *buffer);
-    void startAsyncXfer(uint timeout1, uint timeout2, int *bytesRead, bool *stop, int size);
+    void startAsyncXfer(unsigned int timeout1, unsigned int timeout2, int *bytesRead, bool *stop, int size);
     void releaseAsyncXfer();
 
     void ResetDevice();
 
-    int ReadBuff(uchar* buffer, uint size, uint timeout);
+    int ReadBuff(uchar* buffer, unsigned int size, unsigned int timeout);
     int InsertBuff(uchar *buffer, int i1, ushort v1, int i2, ushort v2, int a5, int a6, int a7);
 
     unsigned int getMaxChunkSize() const;
@@ -80,7 +80,7 @@ public: // export in wrap functions
     bool setChunkedTransfers(unsigned int value);
 
 private:
-    bool submitTransfer(LibUsbChunkedBulkTransfer &transfer, uint timeout);
+    bool submitTransfer(LibUsbChunkedBulkTransfer &transfer, unsigned int timeout);
 
 protected:
     std::deque<std::vector<uchar>> mBuffer;
@@ -95,12 +95,12 @@ protected:
     std::vector<LibUsbChunkedBulkTransfer>  mTransfer;
     int mChunkedTransferIndex = 0;
 
-    uint mMaxChunkSize;
-    uint mChunkedTransfers;
+    unsigned int mMaxChunkSize;
+    unsigned int mChunkedTransfers;
 
     std::atomic<bool> mIsRunning;
 
-    uint mInvalidDataFrames = 0;
+    unsigned int mInvalidDataFrames = 0;
     size_t mBufferSize;
 
 public: // taken from the library
