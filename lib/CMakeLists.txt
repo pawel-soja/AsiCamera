@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 2.8)
 
 project (ASICamera2Boost CXX C)
 
-set(ASIVERSION "1.15")
+set(ASIVERSION "1.30")
 
 IF (CMAKE_SYSTEM_PROCESSOR MATCHES "armv+")
     set(ASIARCH "armv6")
@@ -47,9 +47,9 @@ target_include_directories(ASICamera2Boost PUBLIC ../libasicamera2/${ASIVERSION}
 target_link_libraries(ASICamera2Boost PRIVATE pthread usb-1.0)
 target_link_libraries(ASICamera2Boost PRIVATE
     -Wl,--whole-archive
-    -Wl,--wrap=_ZN6CirBuf8ReadBuffEPhii
+    -Wl,--wrap=_ZN6CirBuf8ReadBuffEPhiiPS0_
     -Wl,--wrap=_ZN6CirBuf10InsertBuffEPhititiii
-    -Wl,--wrap=_ZN6CirBufC1El
+    -Wl,--wrap=_ZN6CirBufC1Eli
     -Wl,--wrap=_ZN11CCameraBase12InitVariableEv
     -Wl,--wrap=_ZN11CCameraBase11CloseCameraEv
     -Wl,--wrap=_ZN10CCameraFX313initAsyncXferEiiihPh
