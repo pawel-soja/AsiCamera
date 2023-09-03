@@ -160,8 +160,8 @@ int __wrap_libusb_open(libusb_device *dev, libusb_device_handle **devh)
 }
 
 // #4
-void __real__ZN6CirBufC1El(CirBuf *cirBuf, long size);
-void __wrap__ZN6CirBufC1El(CirBuf *cirBuf, long size)
+void __real__ZN6CirBufC1Eli(CirBuf *cirBuf, long size, int v1);
+void __wrap__ZN6CirBufC1Eli(CirBuf *cirBuf, long size, int v1)
 {
     CameraBoost *cameraBoost = getCameraBoost(sOpeningCameraID);
     if (cameraBoost)
@@ -172,7 +172,7 @@ void __wrap__ZN6CirBufC1El(CirBuf *cirBuf, long size)
         sOpeningCameraID = -1; // done
     }
 
-    __real__ZN6CirBufC1El(cirBuf, size);
+    __real__ZN6CirBufC1Eli(cirBuf, size, v1);
 }
 
 // CameraBase::CloseCamera
@@ -231,14 +231,14 @@ int __wrap__ZN6CirBuf10InsertBuffEPhititiii(CirBuf *cirBuf, uchar *buffer, int s
 }
 
 // CirBuf::ReadBuff
-int __real__ZN6CirBuf8ReadBuffEPhii(CirBuf *cirBuf, uchar* buffer, unsigned int size, unsigned int timeout);
-int __wrap__ZN6CirBuf8ReadBuffEPhii(CirBuf *cirBuf, uchar* buffer, unsigned int size, unsigned int timeout)
+int __real__ZN6CirBuf8ReadBuffEPhiiPS0_(CirBuf *cirBuf, uchar* buffer, unsigned int size, unsigned int timeout, unsigned char **v1);
+int __wrap__ZN6CirBuf8ReadBuffEPhiiPS0_(CirBuf *cirBuf, uchar* buffer, unsigned int size, unsigned int timeout, unsigned char **v1)
 {
     CameraBoost *cameraBoost = getCameraBoost(cirBuf);
     if (cameraBoost)
         return cameraBoost->ReadBuff(buffer, size, timeout);
     else
-        return __real__ZN6CirBuf8ReadBuffEPhii(cirBuf, buffer, size, timeout);
+        return __real__ZN6CirBuf8ReadBuffEPhiiPS0_(cirBuf, buffer, size, timeout, v1);
 }
 
 void __real__ZN10CCameraFX316releaseAsyncXferEv(CCameraFX3 * ccameraFX3);
